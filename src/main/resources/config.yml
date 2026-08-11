@@ -1,0 +1,53 @@
+database:
+  host: localhost
+  port: 3306
+  name: mauth
+  user: mauth
+  password: changeme
+  pool-size: 10
+
+discord:
+  enabled: true
+  token: "YOUR_BOT_TOKEN"
+  bot-name: "BotName#0000"
+  invite-link: "https://discord.gg/REPLACE_ME"
+  server-name: "MossHeaven"
+  guild-id: ""
+  player-role-id: ""
+  link-code-ttl-seconds: 300
+
+security:
+  bcrypt-cost: 12
+  min-password-length: 8
+  max-password-length: 64
+  max-login-attempts: 5
+  login-attempt-window-seconds: 300
+  lockout-seconds: 600
+  session-ttl-seconds: 3600
+  freeze-on-join: true
+  auth-timeout-seconds: 60
+
+whitelist:
+  enabled: false
+  kick-message: "Тебя нет в белом списке."
+
+limbo:
+  world-name: limbo
+
+captcha:
+  mode: auto
+  length: 6
+  max-attempts: 3
+  flood-threshold: 10
+  flood-window-seconds: 60
+  flood-cooldown-seconds: 300
+
+audit:
+  enabled: true
+  retention-days: 90
+
+geoip:
+  enabled: true
+  endpoint: "http://ip-api.com/json/{ip}?fields=status,countryCode,country"
+  timeout-seconds: 3
+  notify-discord: true

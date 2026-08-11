@@ -1,0 +1,95 @@
+name: mAuth
+version: ${version}
+main: io.github.miklires.mauth.MAuth
+api-version: '1.21'
+author: miklires
+description: Authentication plugin with Discord linking
+load: STARTUP
+
+commands:
+  register:
+    description: Register a new account
+    usage: /register <password> <password>
+    aliases: [reg]
+  login:
+    description: Login to your account
+    usage: /login <password>
+    aliases: [l]
+  captcha:
+    description: Submit captcha
+    usage: /captcha <code>
+  logout:
+    description: Logout from your account
+    usage: /logout
+  changepassword:
+    description: Change your password
+    usage: /changepassword <old> <new>
+    aliases: [cp, changepass]
+  license:
+    description: Enable premium UUID login
+    usage: /license
+    aliases: [premium]
+  whitelist:
+    description: Manage authentication whitelist
+    usage: /whitelist <add|remove|list> [player]
+    aliases: [wl, mauthwl]
+  mauthreset:
+    description: Reset player's password
+    usage: /mauthreset <player>
+  mauthunlink:
+    description: Unlink player's Discord
+    usage: /mauthunlink <player>
+  mauthlog:
+    description: View player's audit log
+    usage: /mauthlog <player> [limit]
+  mauth:
+    description: Manage mAuth
+    usage: /mauth [reload]
+
+permissions:
+  mauth.command.register:
+    description: Use /register
+    default: true
+  mauth.command.login:
+    description: Use /login
+    default: true
+  mauth.command.captcha:
+    description: Use /captcha
+    default: true
+  mauth.command.logout:
+    description: Use /logout
+    default: true
+  mauth.command.changepassword:
+    description: Use /changepassword
+    default: true
+  mauth.command.license:
+    description: Use /license
+    default: true
+  mauth.command.whitelist.add:
+    description: Use /whitelist add
+    default: op
+  mauth.command.whitelist.remove:
+    description: Use /whitelist remove
+    default: op
+  mauth.command.whitelist.list:
+    description: Use /whitelist list
+    default: op
+  mauth.command.reset:
+    description: Use /mauthreset
+    default: op
+  mauth.command.unlink:
+    description: Use /mauthunlink
+    default: op
+  mauth.command.log:
+    description: Use /mauthlog
+    default: op
+  mauth.admin:
+    description: All admin permissions
+    default: op
+    children:
+      mauth.command.whitelist.add: true
+      mauth.command.whitelist.remove: true
+      mauth.command.whitelist.list: true
+      mauth.command.reset: true
+      mauth.command.unlink: true
+      mauth.command.log: true
