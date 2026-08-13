@@ -1,14 +1,14 @@
 package io.github.miklires.mauth.command;
 
+import io.github.miklires.mauth.MAuth;
+import io.github.miklires.mauth.auth.AuthManager;
+import io.github.miklires.mauth.auth.PasswordValidator;
+import io.github.miklires.mauth.util.MessageUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import io.github.miklires.mauth.MAuth;
-import io.github.miklires.mauth.auth.AuthManager;
-import io.github.miklires.mauth.auth.PasswordValidator;
-import io.github.miklires.mauth.util.MessageUtil;
 
 public class ChangePasswordCommand implements CommandExecutor {
 
@@ -27,21 +27,17 @@ public class ChangePasswordCommand implements CommandExecutor {
             return true;
         }
         MessageUtil msg = plugin.getMessageUtil();
-
         if (!plugin.getSessionManager().isAuthenticated(player)) {
             msg.send(player, "auth.not-logged-in");
             return true;
         }
         if (args.length != 2) {
-            player.sendMessage("§e/changepassword <старый> <новый>");
+            msg.send(player, "auth.change-password-usage");
             return true;
         }
 
-        String oldPw = args[0];
-        String newPw = args[1];
-
-        PasswordValidator.Result v = plugin.getPasswordValidator().validate(newPw, player.getName());
-        switch (v) {
+        PasswordValidator.Result validation = plugin.getPasswordValidator().validate(args[1], player.getName());
+        switch (validation) {
             case TOO_SHORT -> {
                 msg.send(player, "auth.password-too-short",
                         MessageUtil.ph("count", plugin.getConfigManager().getMinPasswordLength()));
@@ -56,16 +52,30 @@ public class ChangePasswordCommand implements CommandExecutor {
                 msg.send(player, "auth.password-too-weak");
                 return true;
             }
-            default -> {}
+            default -> { }
         }
 
-        AuthManager.ChangePasswordResult r = plugin.getAuthManager().changePassword(player, oldPw, newPw);
-        switch (r) {
+        String username = player.getName();
+        String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
+        plugin.getAuthManager().changePassword(username, ip, args[0], args[1]).whenComplete((result, error) ->
+                plugin.getPluginScheduler().player(player, () -> {
+                    if (!player.isOnline()) return;
+                    if (error != null) {
+                        plugin.getLogger().severe("password change task failed: " + error.getMessage());
+                        msg.send(player, "auth.database-error");
+                        return;
+                    }
+                    handleResult(player, msg, result);
+                }));
+        return true;
+    }
+
+    private void handleResult(Player player, MessageUtil msg, AuthManager.ChangePasswordResult result) {
+        switch (result) {
             case NOT_REGISTERED -> msg.send(player, "auth.please-register");
             case WRONG_OLD -> msg.send(player, "auth.wrong-password");
-            case DB_ERROR -> player.sendMessage("§cОшибка БД.");
+            case DB_ERROR -> msg.send(player, "auth.database-error");
             case SUCCESS -> msg.send(player, "auth.password-changed");
         }
-        return true;
     }
 }

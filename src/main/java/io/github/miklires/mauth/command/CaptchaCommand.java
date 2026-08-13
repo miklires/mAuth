@@ -10,6 +10,8 @@ import io.github.miklires.mauth.MAuth;
 import io.github.miklires.mauth.captcha.CaptchaManager;
 import io.github.miklires.mauth.util.MessageUtil;
 
+import java.util.concurrent.CompletableFuture;
+
 public class CaptchaCommand implements CommandExecutor {
 
     private final MAuth plugin;
@@ -41,13 +43,22 @@ public class CaptchaCommand implements CommandExecutor {
         switch (r) {
             case OK -> {
                 msg.send(player, "captcha.ok");
-                try {
-                    boolean exists = plugin.getAccountRepository()
-                            .findByUsername(player.getName()).isPresent();
-                    msg.send(player, exists ? "auth.please-login" : "auth.please-register");
-                } catch (java.sql.SQLException e) {
-                    plugin.getLogger().warning("db error on captcha post-check: " + e.getMessage());
-                }
+                CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return plugin.getAccountRepository().findByUsername(player.getName()).isPresent();
+                    } catch (java.sql.SQLException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }, plugin.getAuthExecutor()).whenComplete((exists, error) ->
+                        plugin.getPluginScheduler().player(player, () -> {
+                            if (!player.isOnline()) return;
+                            if (error != null) {
+                                plugin.getLogger().warning("db error on captcha post-check: " + error.getMessage());
+                                msg.send(player, "auth.database-error");
+                                return;
+                            }
+                            msg.send(player, exists ? "auth.please-login" : "auth.please-register");
+                        }));
             }
             case WRONG -> {
                 CaptchaManager.CaptchaState state = plugin.getCaptchaManager().getState(player);
@@ -60,7 +71,7 @@ public class CaptchaCommand implements CommandExecutor {
                 plugin.getAuditLogger().log(
                         io.github.miklires.mauth.audit.AuditEvent.CAPTCHA_FAILED_OUT_OF_ATTEMPTS,
                         player.getName(), ip);
-                player.kick(plugin.getMessageUtil().getPlain("captcha.kick-out-of-attempts"));
+                player.kick(plugin.getMessageUtil().getPlain(player, "captcha.kick-out-of-attempts"));
             }
             case NO_CAPTCHA -> msg.send(player, "captcha.no-pending");
         }

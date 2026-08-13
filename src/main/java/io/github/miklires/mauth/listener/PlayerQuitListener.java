@@ -8,6 +8,7 @@ import io.github.miklires.mauth.model.Account;
 
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class PlayerQuitListener implements Listener {
 
@@ -23,6 +24,7 @@ public class PlayerQuitListener implements Listener {
         boolean wasAuthenticated = plugin.getSessionManager().isAuthenticated(player);
         plugin.getSessionManager().clear(player);
         plugin.getCaptchaManager().clear(player);
+        plugin.getTotpService().clear(player.getUniqueId());
 
         if (!wasAuthenticated) return;
         if (plugin.getLimboWorldManager().isInLimbo(player)) return;
@@ -30,14 +32,16 @@ public class PlayerQuitListener implements Listener {
         String username = player.getName().toLowerCase();
         String serialized = plugin.getLimboWorldManager().serializeLocation(player.getLocation());
 
-        try {
-            Optional<Account> opt = plugin.getAccountRepository().findByUsername(username);
-            if (opt.isEmpty()) return;
-            Account a = opt.get();
-            a.setLastLocation(serialized);
-            plugin.getAccountRepository().update(a);
-        } catch (SQLException e) {
-            plugin.getLogger().warning("cannot save position for " + username + ": " + e.getMessage());
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                Optional<Account> opt = plugin.getAccountRepository().findByUsername(username);
+                if (opt.isEmpty()) return;
+                Account a = opt.get();
+                a.setLastLocation(serialized);
+                plugin.getAccountRepository().update(a);
+            } catch (SQLException e) {
+                plugin.getLogger().warning("cannot save position for " + username + ": " + e.getMessage());
+            }
+        }, plugin.getAuthExecutor());
     }
 }

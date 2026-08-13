@@ -1,5 +1,6 @@
 package io.github.miklires.mauth.auth;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import io.github.miklires.mauth.MAuth;
 import io.github.miklires.mauth.audit.AuditEvent;
@@ -8,15 +9,17 @@ import io.github.miklires.mauth.model.Account;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class AuthManager {
 
     public enum RegisterResult {
-        SUCCESS, ALREADY_EXISTS, PASSWORD_MISMATCH, DB_ERROR
+        SUCCESS, ALREADY_EXISTS, PASSWORD_MISMATCH, TOO_MANY_ACCOUNTS, DB_ERROR
     }
 
     public enum LoginResult {
-        SUCCESS, NOT_REGISTERED, WRONG_PASSWORD, LOCKED_OUT, DB_ERROR, DISCORD_REQUIRED
+        SUCCESS, NOT_REGISTERED, WRONG_PASSWORD, LOCKED_OUT, DB_ERROR, DISCORD_REQUIRED,
+        TOTP_REQUIRED, VPN_BLOCKED, DEVICE_BLOCKED
     }
 
     public enum ChangePasswordResult {
@@ -24,25 +27,42 @@ public class AuthManager {
     }
 
     private final MAuth plugin;
+    private final Object registrationLock = new Object();
 
     public AuthManager(MAuth plugin) {
         this.plugin = plugin;
     }
 
-    public RegisterResult register(Player player, String password, String confirm) {
+    public CompletableFuture<RegisterResult> register(String username, String ip,
+                                                       String password, String confirm) {
+        return CompletableFuture.supplyAsync(
+                () -> registerNow(username, ip, password, confirm), plugin.getAuthExecutor());
+    }
+
+    private RegisterResult registerNow(String username, String ip, String password, String confirm) {
         if (!password.equals(confirm)) return RegisterResult.PASSWORD_MISMATCH;
-        String username = player.getName().toLowerCase();
+        String registeredName = username;
+        username = username.toLowerCase();
         try {
             if (plugin.getAccountRepository().findByUsername(username).isPresent()) {
                 return RegisterResult.ALREADY_EXISTS;
             }
             String hash = plugin.getPasswordHasher().hash(password);
-            Account a = new Account(username, hash);
-            String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
-            a.setLastIp(ip);
-            plugin.getAccountRepository().insert(a);
-            if (ip != null) {
-                plugin.getKnownIpRepository().recordIp(username, ip);
+            synchronized (registrationLock) {
+                if (plugin.getAccountRepository().findByUsername(username).isPresent()) {
+                    return RegisterResult.ALREADY_EXISTS;
+                }
+                int limit = plugin.getConfigManager().getMaxAccountsPerIp();
+                if (ip != null && limit > 0
+                        && plugin.getKnownIpRepository().countAccounts(ip) >= limit) {
+                    return RegisterResult.TOO_MANY_ACCOUNTS;
+                }
+                Account a = new Account(registeredName, hash);
+                a.setLastIp(ip);
+                plugin.getAccountRepository().insert(a);
+                if (ip != null) {
+                    plugin.getKnownIpRepository().recordIp(username, ip);
+                }
             }
             plugin.getAuditLogger().log(AuditEvent.REGISTER, username, ip);
             return RegisterResult.SUCCESS;
@@ -52,55 +72,120 @@ public class AuthManager {
         }
     }
 
-    public LoginResult login(Player player, String password) {
-        String username = player.getName().toLowerCase();
-        String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
-        if (plugin.getSessionManager().isLockedOut(username)) {
-            plugin.getAuditLogger().log(AuditEvent.LOGIN_FAIL_LOCKED_OUT, username, ip);
-            return LoginResult.LOCKED_OUT;
-        }
+    public CompletableFuture<LoginAttempt> login(String username, String ip, java.util.UUID uuid, String password) {
+        return CompletableFuture.supplyAsync(
+                () -> loginNow(username, ip, uuid, password), plugin.getAuthExecutor());
+    }
+
+    private LoginAttempt loginNow(String username, String ip, java.util.UUID uuid, String password) {
+        String enteredName = username;
+        username = username.toLowerCase();
         try {
             Optional<Account> opt = plugin.getAccountRepository().findByUsername(username);
-            if (opt.isEmpty()) return LoginResult.NOT_REGISTERED;
+            if (opt.isEmpty()) return new LoginAttempt(LoginResult.NOT_REGISTERED, null, false, false);
             Account a = opt.get();
             if (!plugin.getPasswordHasher().verify(password, a.getPasswordHash())) {
-                plugin.getSessionManager().recordFailedAttempt(username);
                 plugin.getAuditLogger().log(AuditEvent.LOGIN_FAIL_WRONG_PASSWORD, username, ip);
-                return LoginResult.WRONG_PASSWORD;
+                return new LoginAttempt(LoginResult.WRONG_PASSWORD, null, false, false);
             }
 
-            if (!a.hasDiscordLinked()) {
+            if (plugin.getIpRiskService().check(ip)
+                    == io.github.miklires.mauth.risk.IpRiskService.Decision.BLOCK) {
+                plugin.getAuditLogger().log(AuditEvent.LOGIN_FAIL_VPN, username, ip);
+                return new LoginAttempt(LoginResult.VPN_BLOCKED, null, false, false);
+            }
+
+            boolean newIp = ip != null && !plugin.getKnownIpRepository().isKnown(username, ip)
+                    && plugin.getKnownIpRepository().countForAccount(username) > 0;
+            boolean knownDevice = plugin.getKnownDeviceRepository().isKnown(username, uuid);
+            boolean newDevice = !knownDevice && plugin.getKnownDeviceRepository().count(username) > 0;
+            if (newDevice && plugin.getConfigManager().getNewDevicePolicy().equals("deny")) {
+                return new LoginAttempt(LoginResult.DEVICE_BLOCKED, null, newIp, true);
+            }
+            plugin.getKnownDeviceRepository().record(username, uuid);
+
+            if (plugin.getPasswordHasher().needsRehash(a.getPasswordHash())) {
+                a.setPasswordHash(plugin.getPasswordHasher().hash(password));
+            }
+            if (a.getRegisteredName() == null) {
+                a.setRegisteredName(enteredName);
+            }
+
+            DiscordMode mode = plugin.getConfigManager().getDiscordMode();
+            if (!a.hasDiscordLinked()
+                    && mode.requiresLink(a.getRegisteredAt(), plugin.getConfigManager().getDiscordRequiredAfter())) {
                 plugin.getAuditLogger().log(AuditEvent.LOGIN_FAIL_DISCORD_REQUIRED, username, ip);
-                return LoginResult.DISCORD_REQUIRED;
+                return new LoginAttempt(LoginResult.DISCORD_REQUIRED, null, newIp, newDevice);
             }
 
-            a.setLastLoginAt(Instant.now());
-            a.setLastIp(ip);
-            plugin.getAccountRepository().update(a);
-            plugin.getSessionManager().markAuthenticated(player);
+            if (a.hasTotp()) return new LoginAttempt(LoginResult.TOTP_REQUIRED, a, newIp, newDevice);
 
-            if (ip != null) {
-                plugin.getKnownIpRepository().recordIp(username, ip);
-            }
-
-            org.bukkit.Location saved = plugin.getLimboWorldManager().parseLocation(a.getLastLocation());
-            org.bukkit.Location actual = plugin.getLimboWorldManager().returnFromLimbo(player, saved);
-            if (saved == null && actual != null) {
-                a.setLastLocation(plugin.getLimboWorldManager().serializeLocation(actual));
-                plugin.getAccountRepository().update(a);
-            }
-
-            plugin.getAuditLogger().log(AuditEvent.LOGIN_SUCCESS, username, ip);
-            plugin.getGeoIpService().checkAsync(username, ip, a.getDiscordId());
-            return LoginResult.SUCCESS;
+            recordSuccessfulLogin(a, ip, false);
+            return new LoginAttempt(LoginResult.SUCCESS, a, newIp, newDevice);
         } catch (SQLException e) {
             plugin.getLogger().severe("db error on login: " + e.getMessage());
-            return LoginResult.DB_ERROR;
+            return new LoginAttempt(LoginResult.DB_ERROR, null, false, false);
         }
     }
 
-    public ChangePasswordResult changePassword(Player player, String oldPw, String newPw) {
-        String username = player.getName().toLowerCase();
+    public void finishSecondFactor(Account account, String ip, boolean recoveryUsed) {
+        try {
+            recordSuccessfulLogin(account, ip, recoveryUsed);
+        } catch (SQLException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private void recordSuccessfulLogin(Account account, String ip, boolean recoveryUsed) throws SQLException {
+        account.setLastLoginAt(Instant.now());
+        account.setLastIp(ip);
+        plugin.getAccountRepository().update(account);
+        if (ip != null) plugin.getKnownIpRepository().recordIp(account.getUsername(), ip);
+        plugin.getAuditLogger().log(AuditEvent.LOGIN_SUCCESS, account.getUsername(), ip);
+        if (recoveryUsed) {
+            plugin.getAuditLogger().log(AuditEvent.TOTP_RECOVERY_USED, account.getUsername(), ip);
+        }
+    }
+
+    public void completeLogin(Player player, Account account) {
+        plugin.getFloodgateBridge().getXuid(player.getUniqueId()).ifPresent(xuid -> {
+            if (account.getBedrockXuid() != null) return;
+            account.setBedrockXuid(xuid);
+            CompletableFuture.runAsync(() -> {
+                try {
+                    plugin.getAccountRepository().update(account);
+                } catch (SQLException e) {
+                    account.setBedrockXuid(null);
+                    plugin.getLogger().warning("cannot link Floodgate account: " + e.getMessage());
+                }
+            }, plugin.getAuthExecutor());
+        });
+        plugin.getSessionManager().markAuthenticated(player);
+        Location saved = plugin.getLimboWorldManager().parseLocation(account.getLastLocation());
+        Location actual = plugin.getLimboWorldManager().returnFromLimbo(player, saved);
+        if (saved == null && actual != null) {
+            account.setLastLocation(plugin.getLimboWorldManager().serializeLocation(actual));
+            CompletableFuture.runAsync(() -> {
+                try {
+                    plugin.getAccountRepository().update(account);
+                } catch (SQLException e) {
+                    plugin.getLogger().warning("cannot save login location: " + e.getMessage());
+                }
+            }, plugin.getAuthExecutor());
+        }
+        String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
+        plugin.getGeoIpService().checkAsync(account.getUsername(), ip, account.getDiscordId());
+    }
+
+    public CompletableFuture<ChangePasswordResult> changePassword(String username, String ip,
+                                                                   String oldPw, String newPw) {
+        return CompletableFuture.supplyAsync(
+                () -> changePasswordNow(username, ip, oldPw, newPw), plugin.getAuthExecutor());
+    }
+
+    private ChangePasswordResult changePasswordNow(String username, String ip,
+                                                    String oldPw, String newPw) {
+        username = username.toLowerCase();
         try {
             Optional<Account> opt = plugin.getAccountRepository().findByUsername(username);
             if (opt.isEmpty()) return ChangePasswordResult.NOT_REGISTERED;
@@ -111,7 +196,6 @@ public class AuthManager {
             a.setPasswordHash(plugin.getPasswordHasher().hash(newPw));
             plugin.getAccountRepository().update(a);
             plugin.getSessionManager().invalidatePersistentSession(username);
-            String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
             plugin.getAuditLogger().log(AuditEvent.PASSWORD_CHANGED, username, ip);
             return ChangePasswordResult.SUCCESS;
         } catch (SQLException e) {
@@ -119,4 +203,6 @@ public class AuthManager {
             return ChangePasswordResult.DB_ERROR;
         }
     }
+
+    public record LoginAttempt(LoginResult result, Account account, boolean newIp, boolean newDevice) {}
 }

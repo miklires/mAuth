@@ -34,7 +34,7 @@ public class LogCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 1) {
-            sender.sendMessage("§e/mauthlog <игрок> [лимит]");
+            plugin.getMessageUtil().send(sender, "admin.log-usage");
             return true;
         }
 
@@ -47,13 +47,26 @@ public class LogCommand implements CommandExecutor {
             }
         }
 
-        try {
-            List<AuditLogger.LogEntry> entries = plugin.getAuditLogger().getRecent(username, limit);
-            if (entries.isEmpty()) {
-                sender.sendMessage("§eДля " + username + " записей не найдено.");
-                return true;
+        int count = limit;
+        plugin.submit(() -> {
+            try {
+                return plugin.getAuditLogger().getRecent(username, count);
+            } catch (SQLException e) {
+                throw new IllegalStateException(e);
             }
-            sender.sendMessage("§6История " + username + " (последние " + entries.size() + "):");
+        }, (entries, error) -> {
+            if (error != null) {
+                plugin.getLogger().severe("db error on mauthlog: " + error.getMessage());
+                plugin.getMessageUtil().send(sender, "auth.database-error");
+                return;
+            }
+            if (entries.isEmpty()) {
+                plugin.getMessageUtil().send(sender, "admin.log-empty",
+                        MessageUtil.ph("player", username));
+                return;
+            }
+            plugin.getMessageUtil().send(sender, "admin.log-header",
+                    MessageUtil.ph("player", username), MessageUtil.ph("count", entries.size()));
             for (AuditLogger.LogEntry e : entries) {
                 String ts = FMT.format(Instant.ofEpochSecond(e.ts()));
                 StringBuilder line = new StringBuilder("§7[")
@@ -62,10 +75,7 @@ public class LogCommand implements CommandExecutor {
                 if (e.details() != null) line.append(" §8").append(e.details());
                 sender.sendMessage(line.toString());
             }
-        } catch (SQLException e) {
-            plugin.getLogger().severe("db error on mauthlog: " + e.getMessage());
-            sender.sendMessage("§cОшибка БД.");
-        }
+        });
         return true;
     }
 }

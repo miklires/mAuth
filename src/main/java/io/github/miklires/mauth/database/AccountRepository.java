@@ -44,6 +44,18 @@ public class AccountRepository {
         return Optional.empty();
     }
 
+    public Optional<Account> findByTelegramId(String telegramId) throws SQLException {
+        String sql = "SELECT * FROM mauth_accounts WHERE telegram_id = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, telegramId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(map(rs));
+            }
+        }
+        return Optional.empty();
+    }
+
     public Optional<Account> findByPremiumUuid(UUID uuid) throws SQLException {
         String sql = "SELECT * FROM mauth_accounts WHERE premium_uuid = ?";
         try (Connection c = db.getConnection();
@@ -56,14 +68,30 @@ public class AccountRepository {
         return Optional.empty();
     }
 
+    public Optional<Account> findByBedrockXuid(String xuid) throws SQLException {
+        String sql = "SELECT * FROM mauth_accounts WHERE bedrock_xuid = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, xuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(map(rs));
+            }
+        }
+        return Optional.empty();
+    }
+
     public void insert(Account a) throws SQLException {
-        String sql = "INSERT INTO mauth_accounts (username, password_hash, registered_at, whitelisted) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO mauth_accounts "
+                + "(username, registered_name, password_hash, bedrock_xuid, registered_at, whitelisted) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, a.getUsername());
-            ps.setString(2, a.getPasswordHash());
-            ps.setLong(3, a.getRegisteredAt().getEpochSecond());
-            ps.setBoolean(4, a.isWhitelisted());
+            ps.setString(2, a.getRegisteredName());
+            ps.setString(3, a.getPasswordHash());
+            ps.setString(4, a.getBedrockXuid());
+            ps.setLong(5, a.getRegisteredAt().getEpochSecond());
+            ps.setBoolean(6, a.isWhitelisted());
             ps.executeUpdate();
         }
     }
@@ -73,29 +101,46 @@ public class AccountRepository {
             UPDATE mauth_accounts SET
                 password_hash = ?,
                 premium_uuid = ?,
+                bedrock_xuid = ?,
                 discord_id = ?,
                 whitelisted = ?,
                 premium_enabled = ?,
                 last_login_at = ?,
                 last_ip = ?,
                 last_location = ?,
-                last_password_reset_at = ?
+                last_password_reset_at = ?,
+                registered_name = ?,
+                totp_secret = ?,
+                recovery_codes = ?,
+                locked_until = ?,
+                email = ?,
+                email_verified = ?,
+                telegram_id = ?
             WHERE username = ?
             """;
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, a.getPasswordHash());
             ps.setString(2, a.getPremiumUuid() != null ? a.getPremiumUuid().toString() : null);
-            ps.setString(3, a.getDiscordId());
-            ps.setBoolean(4, a.isWhitelisted());
-            ps.setBoolean(5, a.isPremiumEnabled());
-            if (a.getLastLoginAt() != null) ps.setLong(6, a.getLastLoginAt().getEpochSecond());
-            else ps.setNull(6, java.sql.Types.BIGINT);
-            ps.setString(7, a.getLastIp());
-            ps.setString(8, a.getLastLocation());
-            if (a.getLastPasswordResetAt() != null) ps.setLong(9, a.getLastPasswordResetAt().getEpochSecond());
-            else ps.setNull(9, java.sql.Types.BIGINT);
-            ps.setString(10, a.getUsername());
+            ps.setString(3, a.getBedrockXuid());
+            ps.setString(4, a.getDiscordId());
+            ps.setBoolean(5, a.isWhitelisted());
+            ps.setBoolean(6, a.isPremiumEnabled());
+            if (a.getLastLoginAt() != null) ps.setLong(7, a.getLastLoginAt().getEpochSecond());
+            else ps.setNull(7, java.sql.Types.BIGINT);
+            ps.setString(8, a.getLastIp());
+            ps.setString(9, a.getLastLocation());
+            if (a.getLastPasswordResetAt() != null) ps.setLong(10, a.getLastPasswordResetAt().getEpochSecond());
+            else ps.setNull(10, java.sql.Types.BIGINT);
+            ps.setString(11, a.getRegisteredName());
+            ps.setString(12, a.getTotpSecret());
+            ps.setString(13, a.getRecoveryCodes());
+            if (a.getLockedUntil() != null) ps.setLong(14, a.getLockedUntil().getEpochSecond());
+            else ps.setNull(14, java.sql.Types.BIGINT);
+            ps.setString(15, a.getEmail());
+            ps.setBoolean(16, a.isEmailVerified());
+            ps.setString(17, a.getTelegramId());
+            ps.setString(18, a.getUsername());
             ps.executeUpdate();
         }
     }
@@ -126,17 +171,27 @@ public class AccountRepository {
         boolean lastLoginWasNull = rs.wasNull();
         long lastReset = rs.getLong("last_password_reset_at");
         boolean lastResetWasNull = rs.wasNull();
+        long lockedUntil = rs.getLong("locked_until");
+        boolean lockedUntilWasNull = rs.wasNull();
         Account a = new Account(
                 rs.getString("username"),
+                rs.getString("registered_name"),
                 rs.getString("password_hash"),
                 premiumUuidStr != null ? UUID.fromString(premiumUuidStr) : null,
+                rs.getString("bedrock_xuid"),
                 rs.getString("discord_id"),
                 rs.getBoolean("whitelisted"),
                 rs.getBoolean("premium_enabled"),
                 Instant.ofEpochSecond(rs.getLong("registered_at")),
                 lastLoginWasNull ? null : Instant.ofEpochSecond(lastLogin),
                 rs.getString("last_ip"),
-                rs.getString("last_location")
+                rs.getString("last_location"),
+                rs.getString("totp_secret"),
+                rs.getString("recovery_codes"),
+                lockedUntilWasNull ? null : Instant.ofEpochSecond(lockedUntil),
+                rs.getString("email"),
+                rs.getBoolean("email_verified"),
+                rs.getString("telegram_id")
         );
         if (!lastResetWasNull) {
             a.setLastPasswordResetAt(Instant.ofEpochSecond(lastReset));

@@ -57,6 +57,31 @@ public class PasswordResetService {
         }
     }
 
+    public ResetResult resetByTelegramId(String telegramId) {
+        try {
+            Optional<Account> opt = plugin.getAccountRepository().findByTelegramId(telegramId);
+            if (opt.isEmpty()) return new ResetResult(Status.NOT_FOUND, null);
+            Account a = opt.get();
+            if (isOnline(a.getUsername())) return new ResetResult(Status.PLAYER_ONLINE, null);
+            if (a.getLastPasswordResetAt() != null) {
+                long elapsed = System.currentTimeMillis() / 1000 - a.getLastPasswordResetAt().getEpochSecond();
+                if (elapsed < RATE_LIMIT_SECONDS) {
+                    return new ResetResult(Status.RATE_LIMITED, null, RATE_LIMIT_SECONDS - elapsed);
+                }
+            }
+            String password = generatePassword(12);
+            a.setPasswordHash(plugin.getPasswordHasher().hash(password));
+            a.setLastPasswordResetAt(Instant.now());
+            plugin.getAccountRepository().update(a);
+            plugin.getSessionManager().invalidatePersistentSession(a.getUsername());
+            plugin.getAuditLogger().log(AuditEvent.PASSWORD_RESET_TELEGRAM, a.getUsername(), null);
+            return new ResetResult(Status.SUCCESS, password, a.getUsername());
+        } catch (SQLException e) {
+            plugin.getLogger().severe("db error on telegram reset: " + e.getMessage());
+            return new ResetResult(Status.DB_ERROR, null);
+        }
+    }
+
     private ResetResult doReset(Account a, boolean trackTimestamp) throws SQLException {
         String newPassword = generatePassword(12);
         a.setPasswordHash(plugin.getPasswordHasher().hash(newPassword));

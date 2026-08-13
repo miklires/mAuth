@@ -30,19 +30,28 @@ public class KnownIpRepository {
 
     public void recordIp(String username, String ip) throws SQLException {
         long now = System.currentTimeMillis() / 1000;
-        String sql = """
-            INSERT INTO mauth_known_ips (username, ip, first_seen, last_seen)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE last_seen = ?
-            """;
-        try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, username.toLowerCase());
-            ps.setString(2, ip);
-            ps.setLong(3, now);
-            ps.setLong(4, now);
-            ps.setLong(5, now);
-            ps.executeUpdate();
+        String key = username.toLowerCase();
+        try (Connection c = db.getConnection()) {
+            c.setAutoCommit(false);
+            int changed;
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE mauth_known_ips SET last_seen = ? WHERE username = ? AND ip = ?")) {
+                ps.setLong(1, now);
+                ps.setString(2, key);
+                ps.setString(3, ip);
+                changed = ps.executeUpdate();
+            }
+            if (changed == 0) {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT INTO mauth_known_ips (username, ip, first_seen, last_seen) VALUES (?, ?, ?, ?)")) {
+                    ps.setString(1, key);
+                    ps.setString(2, ip);
+                    ps.setLong(3, now);
+                    ps.setLong(4, now);
+                    ps.executeUpdate();
+                }
+            }
+            c.commit();
         }
     }
 
@@ -84,5 +93,50 @@ public class KnownIpRepository {
             }
         }
         return countries;
+    }
+
+    public List<KnownIp> list(String username, int limit) throws SQLException {
+        String sql = "SELECT ip, first_seen, last_seen, country_code FROM mauth_known_ips "
+                + "WHERE username = ? ORDER BY last_seen DESC LIMIT ?";
+        List<KnownIp> result = new ArrayList<>();
+        try (Connection c = db.getConnection();
+            PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, username.toLowerCase());
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new KnownIp(
+                            rs.getString("ip"),
+                            rs.getLong("first_seen"),
+                            rs.getLong("last_seen"),
+                            rs.getString("country_code")));
+                }
+            }
+        }
+        return result;
+    }
+
+    public int countAccounts(String ip) throws SQLException {
+        String sql = "SELECT COUNT(DISTINCT username) FROM mauth_known_ips WHERE ip = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, ip);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    public int countForAccount(String username) throws SQLException {
+        try (Connection c = db.getConnection(); PreparedStatement ps = c.prepareStatement(
+                "SELECT COUNT(*) FROM mauth_known_ips WHERE username = ?")) {
+            ps.setString(1, username.toLowerCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    public record KnownIp(String ip, long firstSeen, long lastSeen, String countryCode) {
     }
 }

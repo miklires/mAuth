@@ -31,23 +31,29 @@ public class ResetPasswordCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 1) {
-            sender.sendMessage("§e/mauthreset <игрок>");
+            msg.send(sender, "admin.reset-usage");
             return true;
         }
 
         String target = args[0];
-        PasswordResetService.ResetResult result = plugin.getPasswordResetService().resetByUsername(target);
-
-        switch (result.status) {
-            case SUCCESS -> {
-                msg.send(sender, "admin.reset-success", MessageUtil.ph("player", target));
-                sender.sendMessage("§a§lНовый пароль: §f" + result.newPassword);
-                sender.sendMessage("§7Передай игроку безопасным способом. Пароль больше не будет показан.");
+        plugin.submit(() -> plugin.getPasswordResetService().resetByUsername(target), (result, error) -> {
+            if (error != null) {
+                plugin.getLogger().severe("password reset task failed: " + error.getMessage());
+                msg.send(sender, "auth.database-error");
+                return;
             }
-            case NOT_FOUND -> msg.send(sender, "admin.reset-not-found");
-            case DB_ERROR -> sender.sendMessage("§cОшибка БД.");
-            default -> sender.sendMessage("§cНеожиданный статус: " + result.status);
-        }
+            switch (result.status) {
+                case SUCCESS -> {
+                    msg.send(sender, "admin.reset-success", MessageUtil.ph("player", target));
+                    msg.send(sender, "admin.reset-password", MessageUtil.ph("password", result.newPassword));
+                    msg.send(sender, "admin.reset-warning");
+                }
+                case NOT_FOUND -> msg.send(sender, "admin.reset-not-found");
+                case DB_ERROR -> msg.send(sender, "auth.database-error");
+                default -> msg.send(sender, "admin.unexpected-status",
+                        MessageUtil.ph("status", result.status.name()));
+            }
+        });
         return true;
     }
 }

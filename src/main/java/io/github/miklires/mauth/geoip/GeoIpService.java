@@ -1,12 +1,13 @@
 package io.github.miklires.mauth.geoip;
 
 import io.github.miklires.mauth.MAuth;
+import io.github.miklires.mauth.api.DiscordIntegration;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
-public class GeoIpService {
+public class GeoIpService implements AutoCloseable {
 
     private final MAuth plugin;
     private final GeoIpResolver resolver;
@@ -20,8 +21,7 @@ public class GeoIpService {
         if (!plugin.getConfigManager().isGeoIpEnabled()) return;
         if (ip == null) return;
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
-                checkNow(username, ip, discordId));
+        plugin.getPluginScheduler().async(() -> checkNow(username, ip, discordId));
     }
 
     private void checkNow(String username, String ip, String discordId) {
@@ -45,14 +45,20 @@ public class GeoIpService {
 
             plugin.getKnownIpRepository().setCountry(username, ip, info.code());
 
+            DiscordIntegration discord = plugin.getServer().getServicesManager().load(DiscordIntegration.class);
             if (isNewCountry && discordId != null
                     && plugin.getConfigManager().isGeoIpNotifyDiscord()
-                    && plugin.getDiscordBot() != null
-                    && plugin.getDiscordBot().isReady()) {
-                plugin.getDiscordBot().notifyNewCountry(discordId, username, ip, info);
+                    && discord != null && discord.isReady()) {
+                discord.notifyNewCountry(discordId, username, ip,
+                        new DiscordIntegration.LocationInfo(info.code(), info.name(), info.city()));
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("geoip db error for " + username + ": " + e.getMessage());
         }
+    }
+
+    @Override
+    public void close() {
+        resolver.close();
     }
 }

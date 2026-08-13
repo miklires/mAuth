@@ -3,3 +3,7 @@ build/
 .idea/
 *.iml
 out/
+.claude/
+CLAUDE.md
+*.plan.md
+docs/ai/

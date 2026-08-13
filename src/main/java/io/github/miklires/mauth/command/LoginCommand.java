@@ -1,13 +1,13 @@
 package io.github.miklires.mauth.command;
 
+import io.github.miklires.mauth.MAuth;
+import io.github.miklires.mauth.auth.AuthManager;
+import io.github.miklires.mauth.util.MessageUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import io.github.miklires.mauth.MAuth;
-import io.github.miklires.mauth.auth.AuthManager;
-import io.github.miklires.mauth.util.MessageUtil;
 
 public class LoginCommand implements CommandExecutor {
 
@@ -31,36 +31,69 @@ public class LoginCommand implements CommandExecutor {
             msg.send(player, "auth.already-logged-in");
             return true;
         }
-
         if (plugin.getCaptchaManager().hasPending(player)) {
             msg.send(player, "captcha.required");
             return true;
         }
-
         if (args.length != 1) {
             msg.send(player, "auth.please-login");
             return true;
         }
 
-        AuthManager.LoginResult r = plugin.getAuthManager().login(player, args[0]);
-        switch (r) {
+        String username = player.getName();
+        if (plugin.getSessionManager().isLockedOut(username)) {
+            long seconds = plugin.getSessionManager().getLockoutRemainingSeconds(username);
+            msg.send(player, "auth.too-many-attempts", MessageUtil.ph("seconds", (int) seconds));
+            return true;
+        }
+        String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
+        plugin.getAuthManager().login(username, ip, player.getUniqueId(), args[0]).whenComplete((attempt, error) ->
+                plugin.getPluginScheduler().player(player, () -> {
+                    if (!player.isOnline()) return;
+                    if (error != null) {
+                        plugin.getLogger().severe("login task failed: " + error.getMessage());
+                        msg.send(player, "auth.database-error");
+                        return;
+                    }
+                    handleResult(player, msg, attempt);
+                }));
+        return true;
+    }
+
+    private void handleResult(Player player, MessageUtil msg, AuthManager.LoginAttempt attempt) {
+        if (attempt.newIp()) msg.send(player, "auth.new-ip-notice");
+        if (attempt.newDevice() && plugin.getConfigManager().getNewDevicePolicy().equals("notify")) {
+            msg.send(player, "auth.new-device-notice");
+        }
+        switch (attempt.result()) {
             case NOT_REGISTERED -> msg.send(player, "auth.please-register");
-            case WRONG_PASSWORD -> msg.send(player, "auth.wrong-password");
-            case LOCKED_OUT -> {
-                long sec = plugin.getSessionManager().getLockoutRemainingSeconds(player.getName());
-                msg.send(player, "auth.too-many-attempts", MessageUtil.ph("seconds", (int) sec));
+            case WRONG_PASSWORD -> {
+                plugin.getSessionManager().recordFailedAttempt(player.getName());
+                msg.send(player, "auth.wrong-password");
             }
-            case DB_ERROR -> player.sendMessage("§cОшибка БД, попробуй позже.");
+            case LOCKED_OUT -> {
+                long seconds = plugin.getSessionManager().getLockoutRemainingSeconds(player.getName());
+                msg.send(player, "auth.too-many-attempts", MessageUtil.ph("seconds", (int) seconds));
+            }
+            case DB_ERROR -> msg.send(player, "auth.database-error");
             case DISCORD_REQUIRED -> {
                 String code = plugin.getLinkCodeManager().generateCode(player.getName());
-                player.kick(plugin.getMessageUtil().getPlain("auth.kick-discord-required",
+                player.kick(plugin.getMessageUtil().getPlain(player, "auth.kick-discord-required",
                         MessageUtil.ph("code", code),
                         MessageUtil.ph("bot_name", plugin.getConfigManager().getDiscordBotName()),
                         MessageUtil.ph("server_name", plugin.getConfigManager().getDiscordServerName()),
                         MessageUtil.ph("discord_link", plugin.getConfigManager().getDiscordInviteLink())));
             }
-            case SUCCESS -> msg.send(player, "auth.logged-in");
+            case TOTP_REQUIRED -> {
+                plugin.getTotpService().beginLogin(player.getUniqueId(), attempt.account());
+                msg.send(player, "totp.login-required");
+            }
+            case VPN_BLOCKED -> msg.send(player, "auth.vpn-blocked");
+            case DEVICE_BLOCKED -> msg.send(player, "auth.new-device-denied");
+            case SUCCESS -> {
+                plugin.getAuthManager().completeLogin(player, attempt.account());
+                msg.send(player, "auth.logged-in");
+            }
         }
-        return true;
     }
 }

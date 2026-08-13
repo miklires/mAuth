@@ -1,50 +1,20 @@
 name: mAuth
 version: ${version}
 main: io.github.miklires.mauth.MAuth
-api-version: '1.21'
+api-version: '26.2'
 author: miklires
 description: Authentication plugin with Discord linking
 load: STARTUP
-
-commands:
-  register:
-    description: Register a new account
-    usage: /register <password> <password>
-    aliases: [reg]
-  login:
-    description: Login to your account
-    usage: /login <password>
-    aliases: [l]
-  captcha:
-    description: Submit captcha
-    usage: /captcha <code>
-  logout:
-    description: Logout from your account
-    usage: /logout
-  changepassword:
-    description: Change your password
-    usage: /changepassword <old> <new>
-    aliases: [cp, changepass]
-  license:
-    description: Enable premium UUID login
-    usage: /license
-    aliases: [premium]
-  whitelist:
-    description: Manage authentication whitelist
-    usage: /whitelist <add|remove|list> [player]
-    aliases: [wl, mauthwl]
-  mauthreset:
-    description: Reset player's password
-    usage: /mauthreset <player>
-  mauthunlink:
-    description: Unlink player's Discord
-    usage: /mauthunlink <player>
-  mauthlog:
-    description: View player's audit log
-    usage: /mauthlog <player> [limit]
-  mauth:
-    description: Manage mAuth
-    usage: /mauth [reload]
+folia-supported: true
+softdepend: [floodgate, PlaceholderAPI]
+libraries:
+  - com.zaxxer:HikariCP:6.2.1
+  - com.h2database:h2:2.3.232
+  - org.xerial:sqlite-jdbc:3.47.1.0
+  - com.mysql:mysql-connector-j:9.1.0
+  - org.mariadb.jdbc:mariadb-java-client:3.5.1
+  - org.postgresql:postgresql:42.7.5
+  - com.maxmind.geoip2:geoip2:5.2.0
 
 permissions:
   mauth.command.register:
@@ -65,6 +35,24 @@ permissions:
   mauth.command.license:
     description: Use /license
     default: true
+  mauth.command.cracked:
+    description: Use /cracked
+    default: true
+  mauth.command.2fa:
+    description: Use TOTP two-factor authentication
+    default: true
+  mauth.command.sessions:
+    description: Use the session management GUI
+    default: true
+  mauth.command.email:
+    description: Manage a recovery email address
+    default: true
+  mauth.command.recover:
+    description: Recover an account through verified email
+    default: true
+  mauth.command.telegram:
+    description: Link a Telegram account
+    default: true
   mauth.command.whitelist.add:
     description: Use /whitelist add
     default: op
@@ -83,6 +71,21 @@ permissions:
   mauth.command.log:
     description: Use /mauthlog
     default: op
+  mauth.command.ip:
+    description: View full player IP addresses
+    default: op
+  mauth.command.forcelogin:
+    description: Force an online player to authenticate
+    default: op
+  mauth.command.import:
+    description: Import accounts from another authentication plugin
+    default: op
+  mauth.command.lock:
+    description: Temporarily lock or unlock accounts
+    default: op
+  mauth.command.discordhistory:
+    description: View Discord link history
+    default: op
   mauth.admin:
     description: All admin permissions
     default: op
@@ -93,3 +96,8 @@ permissions:
       mauth.command.reset: true
       mauth.command.unlink: true
       mauth.command.log: true
+      mauth.command.ip: true
+      mauth.command.forcelogin: true
+      mauth.command.import: true
+      mauth.command.lock: true
+      mauth.command.discordhistory: true

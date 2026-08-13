@@ -1,4 +1,5 @@
-database:
+storage:
+  type: h2
   host: localhost
   port: 3306
   name: mauth
@@ -6,8 +7,13 @@ database:
   password: changeme
   pool-size: 10
 
+language:
+  default: en_US
+  per-player: true
+
 discord:
-  enabled: true
+  mode: disabled
+  required-for-new-after: 0
   token: "YOUR_BOT_TOKEN"
   bot-name: "BotName#0000"
   invite-link: "https://discord.gg/REPLACE_ME"
@@ -15,9 +21,14 @@ discord:
   guild-id: ""
   player-role-id: ""
   link-code-ttl-seconds: 300
+  show-ip: false
 
 security:
+  password-algorithm: argon2id
   bcrypt-cost: 12
+  argon2-memory-kib: 65536
+  argon2-iterations: 3
+  argon2-parallelism: 1
   min-password-length: 8
   max-password-length: 64
   max-login-attempts: 5
@@ -26,6 +37,13 @@ security:
   session-ttl-seconds: 3600
   freeze-on-join: true
   auth-timeout-seconds: 60
+  max-accounts-per-ip: 3
+  enforce-username-case: true
+  totp-issuer: "mAuth"
+  data-encryption-key: ""
+  auth-policy:
+    new-ip: captcha
+    new-device: notify
 
 whitelist:
   enabled: false
@@ -41,6 +59,10 @@ captcha:
   flood-threshold: 10
   flood-window-seconds: 60
   flood-cooldown-seconds: 300
+  attack-whitelist-mode: true
+  blocked-username-patterns:
+    - "(?i)server"
+    - "(?i)console"
 
 audit:
   enabled: true
@@ -48,6 +70,114 @@ audit:
 
 geoip:
   enabled: true
-  endpoint: "http://ip-api.com/json/{ip}?fields=status,countryCode,country"
-  timeout-seconds: 3
+  database: "GeoLite2-City.mmdb"
+  download-on-missing: false
+  download-url: ""
   notify-discord: true
+
+floodgate:
+  enabled: true
+  auto-register: true
+
+proxy:
+  shared-secret: ""
+
+vpn:
+  provider: "none"
+  block: true
+  fail-closed: false
+  cache-seconds: 3600
+  http:
+    url: ""
+    api-key-header: "Authorization"
+    api-key: ""
+    boolean-field: "proxy"
+    timeout-millis: 3000
+
+web:
+  enabled: false
+  bind: "127.0.0.1"
+  port: 8765
+  token: ""
+
+email:
+  enabled: false
+  from-address: "mauth@example.com"
+  from-name: "mAuth"
+  code-ttl-seconds: 600
+  rate-limit-seconds: 300
+  verification-subject: "mAuth email verification"
+  verification-body: "Your verification code: <code>"
+  recovery-subject: "mAuth password recovery"
+  recovery-body: "Recovery code for <player>: <code>"
+  smtp:
+    host: "smtp.example.com"
+    port: 587
+    username: ""
+    password: ""
+    starttls: true
+    ssl: false
+    timeout-millis: 5000
+    ehlo: "localhost"
+
+telegram:
+  enabled: false
+  token: ""
+  poll-timeout-seconds: 25
+
+metrics:
+  bstats-id: 0
+
+updates:
+  enabled: true
+  modrinth-project-id: ""
+
+imports:
+  authme:
+    jdbc-url: ""
+    user: ""
+    password: ""
+    table: "authme"
+    hash-format: "preserve"
+    columns:
+      username: "username"
+      real-name: "realname"
+      password: "password"
+      ip: "ip"
+      registered-at: "regdate"
+  nlogin:
+    jdbc-url: ""
+    user: ""
+    password: ""
+    table: "nlogin"
+    hash-format: "preserve"
+    columns:
+      username: "name"
+      real-name: "realname"
+      password: "password"
+      ip: "address"
+      registered-at: "regdate"
+  librelogin:
+    jdbc-url: ""
+    user: ""
+    password: ""
+    table: "librelogin_user"
+    hash-format: "preserve"
+    columns:
+      username: "last_nickname"
+      real-name: "last_nickname"
+      password: "password"
+      ip: "ip"
+      registered-at: "join_date"
+  opennlogin:
+    jdbc-url: ""
+    user: ""
+    password: ""
+    table: "users"
+    hash-format: "preserve"
+    columns:
+      username: "name"
+      real-name: "name"
+      password: "password"
+      ip: "last_ip"
+      registered-at: "registered_at"

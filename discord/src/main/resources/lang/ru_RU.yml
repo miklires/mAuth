@@ -1,0 +1,35 @@
+help:
+  title: "mAuth"
+  body: "Отправьте 4-символьный код из игры, чтобы привязать аккаунт.\nИспользуйте `!reset`, если забыли пароль."
+account-not-found:
+  title: "Аккаунт не найден"
+  body: "К этому Discord не привязан игровой аккаунт."
+reset:
+  confirm-title: "Подтверждение сброса"
+  confirm-body: "Сбросить пароль для **{username}**?\nОтправьте `!reset confirm` в течение минуты.\nЛимит: один сброс в сутки."
+  success-title: "Пароль сброшен"
+  success-body: "Аккаунт: **{username}**\nНовый пароль: `{password}`\n\nЗайдите и используйте `/login {password}`. После входа смените пароль через `/changepassword`."
+  online-title: "Сброс недоступен"
+  online-body: "Игрок сейчас онлайн. Выйдите с сервера и попробуйте снова."
+  rate-title: "Лимит сброса"
+  rate-body: "Подождите {duration} перед следующим сбросом пароля."
+server-error:
+  title: "Ошибка сервера"
+  body: "Произошла внутренняя ошибка. Попробуйте позже."
+link:
+  discord-used-title: "Discord уже привязан"
+  discord-used-body: "Этот Discord привязан к аккаунту **{username}**."
+  invalid-title: "Неверный код"
+  invalid-body: "Код неверен или истёк. Создайте новый код в игре."
+  account-used-title: "Аккаунт уже привязан"
+  account-used-body: "**{username}** привязан к другому Discord. Если вы потеряли доступ, обратитесь к администратору."
+  success-title: "Аккаунт привязан"
+  success-body: "Discord привязан к **{username}**. Можно возвращаться на сервер."
+duration:
+  hours: "{hours} ч {minutes} мин"
+  minutes: "{minutes} мин"
+notify:
+  title: "Вход из нового региона"
+  body: "**{username}** вошёл из нового региона.\n\nСтрана: **{country}** (`{code}`)\n{city_line}{ip_line}\nЕсли это были не вы, сбросьте пароль через `!reset`."
+  city: "Город: **{city}**\n"
+  ip: "IP: `{ip}`\n"

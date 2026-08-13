@@ -1,0 +1,7 @@
+name: mAuth-Telegram
+version: ${version}
+main: io.github.miklires.mauth.telegram.TelegramAddon
+api-version: '26.2'
+author: miklires
+description: Telegram integration for mAuth
+depend: [mAuth]

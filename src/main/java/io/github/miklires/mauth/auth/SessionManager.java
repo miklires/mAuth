@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 
 public class SessionManager {
 
@@ -24,6 +25,10 @@ public class SessionManager {
         return authenticated.contains(player.getUniqueId());
     }
 
+    public boolean isAuthenticated(UUID uuid) {
+        return authenticated.contains(uuid);
+    }
+
     public void markAuthenticated(Player player) {
         markAuthenticated(player, io.github.miklires.mauth.api.PlayerAuthenticatedEvent.AuthReason.LOGIN);
     }
@@ -34,30 +39,44 @@ public class SessionManager {
         String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
         if (ip != null) {
             ipSessions.put(username, new IpSession(ip, System.currentTimeMillis()));
-            try {
-                plugin.getSessionRepository().save(username, ip, player.getUniqueId(),
-                        plugin.getConfigManager().getSessionTtl());
-            } catch (java.sql.SQLException e) {
-                plugin.getLogger().warning("cannot save session: " + e.getMessage());
-            }
+            UUID playerId = player.getUniqueId();
+            int ttl = plugin.getConfigManager().getSessionTtl();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    plugin.getSessionRepository().save(username, ip, playerId, ttl);
+                } catch (java.sql.SQLException e) {
+                    plugin.getLogger().warning("cannot save session: " + e.getMessage());
+                }
+            }, plugin.getAuthExecutor());
         }
         attempts.remove(username);
 
-        org.bukkit.Bukkit.getScheduler().runTask(plugin, () ->
+        plugin.getPluginScheduler().player(player, () ->
                 org.bukkit.Bukkit.getPluginManager().callEvent(
                         new io.github.miklires.mauth.api.PlayerAuthenticatedEvent(player, reason)));
     }
 
     public void invalidatePersistentSession(String username) {
-        try {
-            plugin.getSessionRepository().invalidate(username);
-        } catch (java.sql.SQLException e) {
-            plugin.getLogger().warning("cannot delete session: " + e.getMessage());
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                plugin.getSessionRepository().invalidate(username);
+            } catch (java.sql.SQLException e) {
+                plugin.getLogger().warning("cannot delete session: " + e.getMessage());
+            }
+        }, plugin.getAuthExecutor());
     }
 
     public void clear(Player player) {
         authenticated.remove(player.getUniqueId());
+    }
+
+    public void forget(String username, String ip) {
+        IpSession session = ipSessions.get(username.toLowerCase());
+        if (session != null && session.ip.equals(ip)) ipSessions.remove(username.toLowerCase());
+    }
+
+    public void forgetAll(String username) {
+        ipSessions.remove(username.toLowerCase());
     }
 
     public boolean hasValidIpSession(String username, String ip) {

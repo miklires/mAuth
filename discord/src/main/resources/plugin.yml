@@ -1,0 +1,7 @@
+name: mAuth-Discord
+version: ${version}
+main: io.github.miklires.mauth.discord.DiscordAddon
+api-version: '26.2'
+author: miklires
+description: Discord integration for mAuth
+depend: [mAuth]

@@ -43,7 +43,9 @@ public class CaptchaManager {
         if (floodDetector.isFloodActive()) return true;
         if (ip == null) return false;
         try {
-            return !plugin.getKnownIpRepository().isKnown(username, ip);
+            boolean newIp = !plugin.getKnownIpRepository().isKnown(username, ip)
+                    && plugin.getKnownIpRepository().countForAccount(username) > 0;
+            return newIp && plugin.getConfigManager().getNewIpPolicy().equals("captcha");
         } catch (java.sql.SQLException e) {
             plugin.getLogger().warning("db error on captcha ip check: " + e.getMessage());
             return false;

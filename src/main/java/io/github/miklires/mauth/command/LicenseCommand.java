@@ -1,13 +1,13 @@
 package io.github.miklires.mauth.command;
 
+import io.github.miklires.mauth.MAuth;
+import io.github.miklires.mauth.model.Account;
+import io.github.miklires.mauth.util.MessageUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import io.github.miklires.mauth.MAuth;
-import io.github.miklires.mauth.model.Account;
-import io.github.miklires.mauth.util.MessageUtil;
 
 import java.sql.SQLException;
 import java.util.Optional;
@@ -25,72 +25,66 @@ public class LicenseCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return true;
+        MessageUtil msg = plugin.getMessageUtil();
         if (!player.hasPermission("mauth.command.license")) {
-            plugin.getMessageUtil().send(player, "admin.no-permission");
+            msg.send(player, "admin.no-permission");
             return true;
         }
-        MessageUtil msg = plugin.getMessageUtil();
-
         if (!plugin.getSessionManager().isAuthenticated(player)) {
             msg.send(player, "auth.not-logged-in");
             return true;
         }
 
-        UUID online = getOnlineUuid(player.getName());
+        String username = player.getName();
         UUID current = player.getUniqueId();
-        if (online == null || online.equals(current)) {
-            msg.send(player, "license.not-premium-uuid");
-            return true;
-        }
-
-        try {
-            Optional<Account> opt = plugin.getAccountRepository().findByUsername(player.getName());
-            if (opt.isEmpty()) {
-                msg.send(player, "auth.please-register");
-                return true;
+        plugin.submit(player, () -> enable(username, current), (result, error) -> {
+            if (!player.isOnline()) return;
+            if (error != null) {
+                plugin.getLogger().severe("license task failed: " + error.getMessage());
+                msg.send(player, "auth.database-error");
+                return;
             }
-            Account a = opt.get();
-            if (a.isPremiumEnabled() && current.equals(a.getPremiumUuid())) {
-                msg.send(player, "license.already-premium");
-                return true;
+            switch (result) {
+                case ENABLED -> msg.send(player, "license.enabled");
+                case ALREADY_ENABLED -> msg.send(player, "license.already-premium");
+                case NOT_PREMIUM -> msg.send(player, "license.not-premium-uuid");
+                case RATE_LIMITED -> msg.send(player, "license.rate-limited");
+                case UNAVAILABLE -> msg.send(player, "license.unavailable");
+                case NOT_REGISTERED -> msg.send(player, "auth.please-register");
             }
-            a.setPremiumUuid(current);
-            a.setPremiumEnabled(true);
-            plugin.getAccountRepository().update(a);
-            plugin.getAuditLogger().log(io.github.miklires.mauth.audit.AuditEvent.LICENSE_ENABLED,
-                    player.getName(), null, "uuid=" + current);
-            msg.send(player, "license.enabled");
-        } catch (SQLException e) {
-            plugin.getLogger().severe("db error on license: " + e.getMessage());
-            player.sendMessage("§cОшибка БД.");
-        }
+        });
         return true;
     }
 
-    private UUID getOnlineUuid(String name) {
-        try {
-            java.net.URI uri = java.net.URI.create(
-                    "https://api.mojang.com/users/profiles/minecraft/" + name);
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
-                    .uri(uri)
-                    .timeout(java.time.Duration.ofSeconds(5))
-                    .GET()
-                    .build();
-            java.net.http.HttpResponse<String> resp = client.send(req,
-                    java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() != 200) return null;
-            String body = resp.body();
-            int idx = body.indexOf("\"id\"");
-            if (idx < 0) return null;
-            int start = body.indexOf("\"", idx + 5) + 1;
-            int end = body.indexOf("\"", start);
-            String raw = body.substring(start, end);
-            String formatted = raw.replaceFirst(
-                    "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})", "$1-$2-$3-$4-$5");
-            return UUID.fromString(formatted);
-        } catch (Exception e) {
-            return null;
+    private Result enable(String username, UUID current) {
+        var lookup = plugin.getPremiumProfileService().lookup(username);
+        if (lookup.status() == io.github.miklires.mauth.auth.PremiumProfileService.Status.NOT_FOUND) {
+            return Result.NOT_PREMIUM;
         }
+        if (lookup.status() == io.github.miklires.mauth.auth.PremiumProfileService.Status.RATE_LIMITED) {
+            return Result.RATE_LIMITED;
+        }
+        if (lookup.status() == io.github.miklires.mauth.auth.PremiumProfileService.Status.UNAVAILABLE) {
+            return Result.UNAVAILABLE;
+        }
+        UUID online = lookup.uuid();
+        try {
+            Optional<Account> opt = plugin.getAccountRepository().findByUsername(username);
+            if (opt.isEmpty()) return Result.NOT_REGISTERED;
+            Account a = opt.get();
+            if (a.isPremiumEnabled() && online.equals(a.getPremiumUuid())) return Result.ALREADY_ENABLED;
+            a.setPremiumUuid(online);
+            a.setPremiumEnabled(true);
+            plugin.getAccountRepository().update(a);
+            plugin.getAuditLogger().log(io.github.miklires.mauth.audit.AuditEvent.LICENSE_ENABLED,
+                    username, null, "uuid=" + online + ",requested_from=" + current);
+            return Result.ENABLED;
+        } catch (SQLException e) {
+            throw new IllegalStateException("db error on license", e);
+        }
+    }
+
+    private enum Result {
+        ENABLED, ALREADY_ENABLED, NOT_PREMIUM, RATE_LIMITED, UNAVAILABLE, NOT_REGISTERED
     }
 }

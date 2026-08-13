@@ -9,13 +9,18 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import io.github.miklires.mauth.MAuth;
 
 import java.util.Set;
@@ -23,7 +28,7 @@ import java.util.Set;
 public class AuthRestrictionListener implements Listener {
 
     private static final Set<String> ALLOWED_COMMANDS = Set.of(
-            "register", "reg", "login", "l", "captcha"
+            "register", "reg", "login", "l", "captcha", "2fa", "totp", "recover"
     );
 
     private final MAuth plugin;
@@ -98,8 +103,8 @@ public class AuthRestrictionListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onPickup(PlayerPickupItemEvent e) {
-        if (blocked(e.getPlayer())) e.setCancelled(true);
+    public void onPickup(EntityPickupItemEvent e) {
+        if (e.getEntity() instanceof Player p && blocked(p)) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -110,5 +115,30 @@ public class AuthRestrictionListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAttack(EntityDamageByEntityEvent e) {
         if (e.getDamager() instanceof Player p && blocked(p)) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntityInteract(PlayerInteractEntityEvent e) {
+        if (blocked(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onConsume(PlayerItemConsumeEvent e) {
+        if (blocked(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSwapHands(PlayerSwapHandItemsEvent e) {
+        if (blocked(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBed(PlayerBedEnterEvent e) {
+        if (blocked(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onFood(FoodLevelChangeEvent e) {
+        if (e.getEntity() instanceof Player p && blocked(p)) e.setCancelled(true);
     }
 }

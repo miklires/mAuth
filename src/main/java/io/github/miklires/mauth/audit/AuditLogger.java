@@ -19,7 +19,7 @@ public class AuditLogger {
 
     public void log(AuditEvent event, String username, String ip, String details) {
         if (!plugin.getConfigManager().isAuditEnabled()) return;
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+        plugin.getPluginScheduler().async(() ->
                 writeNow(event, username, ip, details));
     }
 

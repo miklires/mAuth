@@ -1,0 +1,35 @@
+help:
+  title: "mAuth"
+  body: "Send the 4-character code from the game to link your account.\nUse `!reset` if you forgot your password."
+account-not-found:
+  title: "Account not found"
+  body: "No Minecraft account is linked to this Discord account."
+reset:
+  confirm-title: "Confirm password reset"
+  confirm-body: "Reset the password for **{username}**?\nSend `!reset confirm` within one minute.\nLimit: one reset per day."
+  success-title: "Password reset"
+  success-body: "Account: **{username}**\nNew password: `{password}`\n\nJoin and use `/login {password}`. Change it with `/changepassword` after login."
+  online-title: "Reset unavailable"
+  online-body: "The player is online. Leave the server and try again."
+  rate-title: "Reset limit"
+  rate-body: "Wait {duration} before resetting the password again."
+server-error:
+  title: "Server error"
+  body: "An internal error occurred. Try again later."
+link:
+  discord-used-title: "Discord already linked"
+  discord-used-body: "This Discord account is linked to **{username}**."
+  invalid-title: "Invalid code"
+  invalid-body: "The code is invalid or expired. Generate a new one in the game."
+  account-used-title: "Account already linked"
+  account-used-body: "**{username}** is linked to another Discord account. Contact an administrator if you lost access."
+  success-title: "Account linked"
+  success-body: "Discord linked to **{username}**. You can return to the server."
+duration:
+  hours: "{hours}h {minutes}m"
+  minutes: "{minutes}m"
+notify:
+  title: "Sign-in from a new region"
+  body: "**{username}** signed in from a new region.\n\nCountry: **{country}** (`{code}`)\n{city_line}{ip_line}\nIf this was not you, reset your password with `!reset`."
+  city: "City: **{city}**\n"
+  ip: "IP: `{ip}`\n"

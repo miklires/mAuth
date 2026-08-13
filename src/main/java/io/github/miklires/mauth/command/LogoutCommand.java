@@ -35,7 +35,7 @@ public class LogoutCommand implements CommandExecutor {
         String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
         plugin.getAuditLogger().log(io.github.miklires.mauth.audit.AuditEvent.LOGOUT, player.getName(), ip);
         msg.send(player, "auth.logged-out");
-        player.kick(plugin.getMessageUtil().getPlain("auth.logged-out"));
+        player.kick(plugin.getMessageUtil().getPlain(player, "auth.logged-out"));
         return true;
     }
 }
