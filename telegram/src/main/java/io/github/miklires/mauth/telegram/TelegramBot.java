@@ -95,7 +95,7 @@ public class TelegramBot implements AutoCloseable {
                 send(chatId, "This Telegram account is already linked to " + existing.get().getRegisteredName());
                 return;
             }
-            Optional<String> username = plugin.getLinkCodeManager().peekCode(code);
+            Optional<String> username = plugin.getLinkCodeManager().consumeCode(code);
             if (username.isEmpty()) {
                 send(chatId, "Invalid or expired code");
                 return;
@@ -108,7 +108,6 @@ public class TelegramBot implements AutoCloseable {
             Account account = found.get();
             account.setTelegramId(chatId);
             plugin.getAccountRepository().update(account);
-            plugin.getLinkCodeManager().consumeCode(code);
             plugin.getAuditLogger().log(AuditEvent.TELEGRAM_LINKED, account.getUsername(), null,
                     "telegram_id=" + chatId);
             send(chatId, "Linked to " + account.getRegisteredName());
@@ -127,10 +126,11 @@ public class TelegramBot implements AutoCloseable {
             }
             resetConfirmations.put(chatId, System.currentTimeMillis() + 300_000);
             String username = account.get().getUsername();
+            java.util.UUID uuid = plugin.getSessionManager().getOnlineUuid(username);
             plugin.getPluginScheduler().global(() -> {
-                var player = plugin.getServer().getPlayerExact(account.get().getRegisteredName());
+                var player = uuid == null ? null : plugin.getServer().getPlayer(uuid);
                 if (player != null) plugin.getPluginScheduler().player(player,
-                        () -> player.kick(plugin.getMessageUtil().getPlain(player, "auth.discord-reset-kick")));
+                        () -> player.kick(plugin.getMessageUtil().getPlain(player, "auth.password-reset-kick")));
             });
             send(chatId, "Reset password for " + username + "? Send /reset confirm within 5 minutes");
         } catch (Exception e) {

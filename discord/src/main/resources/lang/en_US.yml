@@ -1,12 +1,14 @@
 help:
   title: "mAuth"
-  body: "Send the 4-character code from the game to link your account.\nUse `!reset` if you forgot your password."
+  body: "Send the 6-character code from the game to link your account.\nUse `!reset` if you forgot your password."
 account-not-found:
   title: "Account not found"
   body: "No Minecraft account is linked to this Discord account."
 reset:
   confirm-title: "Confirm password reset"
   confirm-body: "Reset the password for **{username}**?\nSend `!reset confirm` within one minute.\nLimit: one reset per day."
+  expired-title: "Confirmation expired"
+  expired-body: "Send `!reset` to start a new password reset."
   success-title: "Password reset"
   success-body: "Account: **{username}**\nNew password: `{password}`\n\nJoin and use `/login {password}`. Change it with `/changepassword` after login."
   online-title: "Reset unavailable"

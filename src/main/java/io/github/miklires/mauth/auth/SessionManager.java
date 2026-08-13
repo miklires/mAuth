@@ -3,9 +3,7 @@ package io.github.miklires.mauth.auth;
 import org.bukkit.entity.Player;
 import io.github.miklires.mauth.MAuth;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
@@ -13,7 +11,9 @@ import java.util.concurrent.CompletableFuture;
 public class SessionManager {
 
     private final MAuth plugin;
-    private final Set<UUID> authenticated = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, String> authenticated = new ConcurrentHashMap<>();
+    private final Map<String, UUID> online = new ConcurrentHashMap<>();
+    private final java.util.Set<UUID> pendingLogins = ConcurrentHashMap.newKeySet();
     private final Map<String, IpSession> ipSessions = new ConcurrentHashMap<>();
     private final Map<String, AttemptState> attempts = new ConcurrentHashMap<>();
 
@@ -22,11 +22,11 @@ public class SessionManager {
     }
 
     public boolean isAuthenticated(Player player) {
-        return authenticated.contains(player.getUniqueId());
+        return authenticated.containsKey(player.getUniqueId());
     }
 
     public boolean isAuthenticated(UUID uuid) {
-        return authenticated.contains(uuid);
+        return authenticated.containsKey(uuid);
     }
 
     public void markAuthenticated(Player player) {
@@ -34,12 +34,12 @@ public class SessionManager {
     }
 
     public void markAuthenticated(Player player, io.github.miklires.mauth.api.PlayerAuthenticatedEvent.AuthReason reason) {
-        authenticated.add(player.getUniqueId());
+        authenticated.put(player.getUniqueId(), player.getName().toLowerCase());
         String username = player.getName().toLowerCase();
         String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
         if (ip != null) {
-            ipSessions.put(username, new IpSession(ip, System.currentTimeMillis()));
             UUID playerId = player.getUniqueId();
+            ipSessions.put(username, new IpSession(ip, playerId, System.currentTimeMillis()));
             int ttl = plugin.getConfigManager().getSessionTtl();
             CompletableFuture.runAsync(() -> {
                 try {
@@ -68,6 +68,38 @@ public class SessionManager {
 
     public void clear(Player player) {
         authenticated.remove(player.getUniqueId());
+        pendingLogins.remove(player.getUniqueId());
+    }
+
+    public void clearAccount(String username) {
+        String key = username.toLowerCase();
+        authenticated.entrySet().removeIf(entry -> entry.getValue().equals(key));
+        ipSessions.remove(key);
+    }
+
+    public void markOnline(Player player) {
+        online.put(player.getName().toLowerCase(), player.getUniqueId());
+    }
+
+    public void markOffline(Player player) {
+        online.remove(player.getName().toLowerCase(), player.getUniqueId());
+        pendingLogins.remove(player.getUniqueId());
+    }
+
+    public boolean isOnline(String username) {
+        return online.containsKey(username.toLowerCase());
+    }
+
+    public UUID getOnlineUuid(String username) {
+        return online.get(username.toLowerCase());
+    }
+
+    public boolean beginLogin(UUID uuid) {
+        return pendingLogins.add(uuid);
+    }
+
+    public void endLogin(UUID uuid) {
+        pendingLogins.remove(uuid);
     }
 
     public void forget(String username, String ip) {
@@ -79,16 +111,12 @@ public class SessionManager {
         ipSessions.remove(username.toLowerCase());
     }
 
-    public boolean hasValidIpSession(String username, String ip) {
-        return hasValidIpSession(username, ip, null);
-    }
-
     public boolean hasValidIpSession(String username, String ip, java.util.UUID playerUuid) {
         if (ip == null) return false;
         IpSession s = ipSessions.get(username.toLowerCase());
         if (s != null) {
             long ttl = plugin.getConfigManager().getSessionTtl() * 1000L;
-            if (System.currentTimeMillis() - s.createdAt <= ttl && s.ip.equals(ip)) {
+            if (s.matches(ip, playerUuid, System.currentTimeMillis(), ttl)) {
                 return true;
             }
             ipSessions.remove(username.toLowerCase());
@@ -135,10 +163,10 @@ public class SessionManager {
         }
     }
 
-    private static class IpSession {
-        final String ip;
-        final long createdAt;
-        IpSession(String ip, long createdAt) { this.ip = ip; this.createdAt = createdAt; }
+    static record IpSession(String ip, UUID playerUuid, long createdAt) {
+        boolean matches(String address, UUID uuid, long now, long ttl) {
+            return ip.equals(address) && playerUuid.equals(uuid) && now - createdAt <= ttl;
+        }
     }
 
     private static class AttemptState {

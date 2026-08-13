@@ -44,7 +44,7 @@ public class MAuthAdminCommand implements CommandExecutor {
             return true;
         }
         if (args[0].equalsIgnoreCase("reload")) {
-            plugin.reloadConfig();
+            plugin.getConfigManager().reload();
             msg.reload();
             plugin.getIpRiskService().reload();
             msg.send(sender, "admin.reloaded");
@@ -238,8 +238,9 @@ public class MAuthAdminCommand implements CommandExecutor {
             }
             plugin.getSessionManager().markAuthenticated(player,
                     io.github.miklires.mauth.api.PlayerAuthenticatedEvent.AuthReason.FORCED);
-            plugin.getLimboWorldManager().returnFromLimbo(player,
-                    plugin.getLimboWorldManager().parseLocation(account.getLastLocation()));
+            var protectedLocation = plugin.getPlayerStateStore().restore(player);
+            plugin.getLimboWorldManager().returnFromLimbo(player, protectedLocation != null
+                    ? protectedLocation : plugin.getLimboWorldManager().parseLocation(account.getLastLocation()));
             String actor = sender.getName();
             plugin.getAuditLogger().log(io.github.miklires.mauth.audit.AuditEvent.FORCE_LOGIN,
                     account.getUsername(), null, "actor=" + actor);

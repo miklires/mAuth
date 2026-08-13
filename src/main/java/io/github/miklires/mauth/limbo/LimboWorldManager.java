@@ -2,7 +2,7 @@ package io.github.miklires.mauth.limbo;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -20,6 +20,7 @@ public class LimboWorldManager {
     }
 
     public void initialize() {
+        if (!plugin.getConfigManager().isLimboEnabled()) return;
         String name = plugin.getConfigManager().getLimboWorldName();
         World existing = Bukkit.getWorld(name);
         if (existing != null) {
@@ -33,7 +34,12 @@ public class LimboWorldManager {
         creator.type(WorldType.FLAT);
         creator.generateStructures(false);
 
-        limboWorld = creator.createWorld();
+        try {
+            limboWorld = creator.createWorld();
+        } catch (UnsupportedOperationException e) {
+            plugin.getLogger().warning("this server cannot create a limbo world; authentication restrictions remain active");
+            return;
+        }
         if (limboWorld == null) {
             plugin.getLogger().severe("cannot create limbo world: " + name);
             return;
@@ -43,7 +49,9 @@ public class LimboWorldManager {
     }
 
     private void applyRules() {
-        limboWorld.setSpawnLocation(0, 100, 0);
+        limboWorld.setSpawnLocation((int) plugin.getConfigManager().getLimboX(),
+                (int) plugin.getConfigManager().getLimboY(),
+                (int) plugin.getConfigManager().getLimboZ());
         limboWorld.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
         limboWorld.setTime(6000);
         limboWorld.setStorm(false);
@@ -51,19 +59,18 @@ public class LimboWorldManager {
         applyGameRules(limboWorld);
     }
 
-    @SuppressWarnings("deprecation")
     private void applyGameRules(World world) {
-        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
-        world.setGameRule(GameRule.DO_FIRE_TICK, false);
-        world.setGameRule(GameRule.MOB_GRIEFING, false);
-        world.setGameRule(GameRule.FALL_DAMAGE, false);
-        world.setGameRule(GameRule.DROWNING_DAMAGE, false);
-        world.setGameRule(GameRule.FIRE_DAMAGE, false);
-        world.setGameRule(GameRule.FREEZE_DAMAGE, false);
-        world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
-        world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        world.setGameRule(GameRules.ADVANCE_TIME, false);
+        world.setGameRule(GameRules.ADVANCE_WEATHER, false);
+        world.setGameRule(GameRules.SPAWN_MOBS, false);
+        world.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0);
+        world.setGameRule(GameRules.MOB_GRIEFING, false);
+        world.setGameRule(GameRules.FALL_DAMAGE, false);
+        world.setGameRule(GameRules.DROWNING_DAMAGE, false);
+        world.setGameRule(GameRules.FIRE_DAMAGE, false);
+        world.setGameRule(GameRules.FREEZE_DAMAGE, false);
+        world.setGameRule(GameRules.IMMEDIATE_RESPAWN, true);
+        world.setGameRule(GameRules.SHOW_ADVANCEMENT_MESSAGES, false);
     }
 
     public World getLimboWorld() {
@@ -76,14 +83,23 @@ public class LimboWorldManager {
 
     public void sendToLimbo(Player player) {
         if (limboWorld == null) return;
-        Location spawn = new Location(limboWorld, 0.5, 100, 0.5, 0, 0);
-        player.teleport(spawn);
-        player.setGameMode(GameMode.ADVENTURE);
-        player.setFlying(false);
-        player.setAllowFlight(true);
-        player.setFlying(true);
-        player.setHealth(20);
-        player.setFoodLevel(20);
+        Location spawn = new Location(limboWorld,
+                plugin.getConfigManager().getLimboX(),
+                plugin.getConfigManager().getLimboY(),
+                plugin.getConfigManager().getLimboZ(),
+                plugin.getConfigManager().getLimboYaw(),
+                plugin.getConfigManager().getLimboPitch());
+        player.teleportAsync(spawn).thenAccept(moved -> {
+            if (!moved || !player.isOnline()) return;
+            plugin.getPluginScheduler().player(player, () -> {
+                player.setGameMode(GameMode.ADVENTURE);
+                player.setFlying(false);
+                player.setAllowFlight(true);
+                player.setFlying(true);
+                player.setHealth(20);
+                player.setFoodLevel(20);
+            });
+        });
     }
 
     public Location parseLocation(String serialized) {
@@ -115,6 +131,7 @@ public class LimboWorldManager {
     }
 
     public Location returnFromLimbo(Player player, Location savedLocation) {
+        if (!plugin.getConfigManager().isLimboEnabled()) return player.getLocation();
         Location target = savedLocation;
         if (target == null) {
             World main = Bukkit.getWorlds().stream()
@@ -127,20 +144,14 @@ public class LimboWorldManager {
             }
             target = findSafeSpawn(main);
         }
-        player.teleport(target);
-        player.setGameMode(player.getServer().getDefaultGameMode());
-        player.setAllowFlight(player.getGameMode() == GameMode.CREATIVE
-                || player.getGameMode() == GameMode.SPECTATOR);
-        player.setFlying(false);
-        player.setFallDistance(0);
+        player.teleportAsync(target).thenAccept(moved -> {
+            if (!moved || !player.isOnline()) return;
+            plugin.getPluginScheduler().player(player, () -> player.setFallDistance(0));
+        });
         return target;
     }
 
     private Location findSafeSpawn(World world) {
-        Location spawn = world.getSpawnLocation();
-        int x = spawn.getBlockX();
-        int z = spawn.getBlockZ();
-        int safeY = world.getHighestBlockYAt(x, z) + 1;
-        return new Location(world, x + 0.5, safeY, z + 0.5, spawn.getYaw(), spawn.getPitch());
+        return world.getSpawnLocation();
     }
 }

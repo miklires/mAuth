@@ -1,4 +1,0 @@
-name: mAuth-Bungee
-main: io.github.miklires.mauth.bungee.MAuthBungee
-version: ${version}
-author: miklires

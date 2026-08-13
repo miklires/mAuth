@@ -21,12 +21,14 @@ import io.github.miklires.mauth.model.Account;
 import java.awt.Color;
 import java.sql.SQLException;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
 
-    private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9]{4}$");
+    private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9]{6}$");
 
     private static final Color COLOR_SUCCESS = new Color(0x2ECC71);
     private static final Color COLOR_ERROR = new Color(0xE74C3C);
@@ -34,6 +36,7 @@ public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
 
     private final MAuth plugin;
     private final DiscordMessages messages;
+    private final Map<String, Long> resetConfirmations = new ConcurrentHashMap<>();
     private JDA jda;
 
     public DiscordBot(MAuth plugin, DiscordMessages messages) {
@@ -121,6 +124,9 @@ public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
             if (isPlayerOnline(a.getUsername())) {
                 kickPlayerForReset(a.getUsername());
             }
+            long now = System.currentTimeMillis();
+            resetConfirmations.entrySet().removeIf(entry -> entry.getValue() < now);
+            resetConfirmations.put(discordUser.getId(), now + 60_000L);
             sendEmbed(event, COLOR_INFO, messages.get("reset.confirm-title"),
                     messages.get("reset.confirm-body", "username", a.getUsername()));
         } catch (SQLException e) {
@@ -131,17 +137,19 @@ public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
     }
 
     private void handleResetConfirm(User discordUser, MessageReceivedEvent event) {
-        try {
-            Optional<Account> opt = plugin.getAccountRepository().findByDiscordId(discordUser.getId());
-            if (opt.isPresent() && isPlayerOnline(opt.get().getUsername())) {
-                kickPlayerForReset(opt.get().getUsername());
-                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
-            }
-        } catch (SQLException ignored) {
+        Long expiry = resetConfirmations.get(discordUser.getId());
+        if (expiry == null || expiry < System.currentTimeMillis()) {
+            resetConfirmations.remove(discordUser.getId());
+            sendEmbed(event, COLOR_ERROR, messages.get("reset.expired-title"),
+                    messages.get("reset.expired-body"));
+            return;
         }
 
         PasswordResetService.ResetResult result = plugin.getPasswordResetService()
                 .resetByDiscordId(discordUser.getId());
+        if (result.status != PasswordResetService.Status.PLAYER_ONLINE) {
+            resetConfirmations.remove(discordUser.getId(), expiry);
+        }
 
         switch (result.status) {
             case SUCCESS -> sendEmbed(event, COLOR_SUCCESS, messages.get("reset.success-title"),
@@ -159,17 +167,16 @@ public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
     }
 
     private boolean isPlayerOnline(String username) {
-        return plugin.getServer().getOnlinePlayers().stream()
-                .anyMatch(p -> p.getName().equalsIgnoreCase(username));
+        return plugin.getSessionManager().isOnline(username);
     }
 
     private void kickPlayerForReset(String username) {
+        java.util.UUID uuid = plugin.getSessionManager().getOnlineUuid(username);
+        if (uuid == null) return;
         plugin.getPluginScheduler().global(() -> {
-            plugin.getServer().getOnlinePlayers().stream()
-                    .filter(p -> p.getName().equalsIgnoreCase(username))
-                    .findFirst()
-                    .ifPresent(p -> plugin.getPluginScheduler().player(p,
-                            () -> p.kick(plugin.getMessageUtil().getPlain(p, "auth.discord-reset-kick"))));
+            var player = plugin.getServer().getPlayer(uuid);
+            if (player != null) plugin.getPluginScheduler().player(player,
+                    () -> player.kick(plugin.getMessageUtil().getPlain(player, "auth.password-reset-kick")));
         });
     }
 
@@ -193,7 +200,7 @@ public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
                 return;
             }
 
-            Optional<String> usernameOpt = plugin.getLinkCodeManager().peekCode(code);
+            Optional<String> usernameOpt = plugin.getLinkCodeManager().consumeCode(code);
             if (usernameOpt.isEmpty()) {
                 sendEmbed(event, COLOR_ERROR, messages.get("link.invalid-title"),
                         messages.get("link.invalid-body"));
@@ -218,7 +225,6 @@ public class DiscordBot extends ListenerAdapter implements DiscordIntegration {
             account.setDiscordId(discordId);
             plugin.getAccountRepository().update(account);
             plugin.getDiscordHistoryRepository().linked(username, discordId);
-            plugin.getLinkCodeManager().consumeCode(code);
             plugin.getAuditLogger().log(io.github.miklires.mauth.audit.AuditEvent.DISCORD_LINKED,
                     username, null, "discord_id=" + discordId);
 

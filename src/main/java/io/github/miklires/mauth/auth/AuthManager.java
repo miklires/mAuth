@@ -148,6 +148,11 @@ public class AuthManager {
     }
 
     public void completeLogin(Player player, Account account) {
+        completeLogin(player, account, io.github.miklires.mauth.api.PlayerAuthenticatedEvent.AuthReason.LOGIN);
+    }
+
+    public void completeLogin(Player player, Account account,
+                              io.github.miklires.mauth.api.PlayerAuthenticatedEvent.AuthReason reason) {
         plugin.getFloodgateBridge().getXuid(player.getUniqueId()).ifPresent(xuid -> {
             if (account.getBedrockXuid() != null) return;
             account.setBedrockXuid(xuid);
@@ -160,10 +165,12 @@ public class AuthManager {
                 }
             }, plugin.getAuthExecutor());
         });
-        plugin.getSessionManager().markAuthenticated(player);
-        Location saved = plugin.getLimboWorldManager().parseLocation(account.getLastLocation());
+        plugin.getSessionManager().markAuthenticated(player, reason);
+        Location protectedLocation = plugin.getPlayerStateStore().restore(player);
+        Location saved = protectedLocation != null ? protectedLocation
+                : plugin.getLimboWorldManager().parseLocation(account.getLastLocation());
         Location actual = plugin.getLimboWorldManager().returnFromLimbo(player, saved);
-        if (saved == null && actual != null) {
+        if (actual != null && (protectedLocation != null || account.getLastLocation() == null)) {
             account.setLastLocation(plugin.getLimboWorldManager().serializeLocation(actual));
             CompletableFuture.runAsync(() -> {
                 try {

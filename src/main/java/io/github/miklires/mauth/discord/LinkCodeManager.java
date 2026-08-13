@@ -3,24 +3,24 @@ package io.github.miklires.mauth.discord;
 import io.github.miklires.mauth.MAuth;
 
 import java.security.SecureRandom;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class LinkCodeManager {
 
     private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private static final int CODE_LENGTH = 4;
+    private static final int CODE_LENGTH = 6;
 
     private final MAuth plugin;
     private final SecureRandom random = new SecureRandom();
-    private final Map<String, CodeEntry> codes = new ConcurrentHashMap<>();
+    private final Map<String, CodeEntry> codes = new HashMap<>();
 
     public LinkCodeManager(MAuth plugin) {
         this.plugin = plugin;
     }
 
-    public String generateCode(String username) {
+    public synchronized String generateCode(String username) {
         purgeExpired();
         String lowerUsername = username.toLowerCase();
 
@@ -38,24 +38,12 @@ public class LinkCodeManager {
         return code;
     }
 
-    public Optional<String> consumeCode(String code) {
+    public synchronized Optional<String> consumeCode(String code) {
         purgeExpired();
         CodeEntry e = codes.remove(code.toUpperCase());
         if (e == null) return Optional.empty();
         long ttlMs = plugin.getConfigManager().getLinkCodeTtl() * 1000L;
         if (System.currentTimeMillis() - e.createdAt > ttlMs) return Optional.empty();
-        return Optional.of(e.username);
-    }
-
-    public Optional<String> peekCode(String code) {
-        purgeExpired();
-        CodeEntry e = codes.get(code.toUpperCase());
-        if (e == null) return Optional.empty();
-        long ttlMs = plugin.getConfigManager().getLinkCodeTtl() * 1000L;
-        if (System.currentTimeMillis() - e.createdAt > ttlMs) {
-            codes.remove(code.toUpperCase());
-            return Optional.empty();
-        }
         return Optional.of(e.username);
     }
 

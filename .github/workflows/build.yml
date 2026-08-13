@@ -12,20 +12,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew clean build :api:build :discord:build :velocity:build :bungee:build :telegram:build --no-daemon
-      - uses: actions/upload-artifact@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew clean build :api:build :discord:build :velocity:build :telegram:build --no-daemon
+      - uses: actions/upload-artifact@v7
         with:
           name: mauth-${{ github.sha }}
           path: |
-            build/libs/*.jar
-            api/build/libs/*.jar
-            discord/build/libs/*.jar
-            velocity/build/libs/*.jar
-            bungee/build/libs/*.jar
-            telegram/build/libs/*.jar
+            build/libs/mAuth-1.0.0.jar
+            api/build/libs/mAuth-API-1.0.0.jar
+            discord/build/libs/mAuth-Discord-1.0.0.jar
+            velocity/build/libs/mAuth-Velocity-1.0.0.jar
+            telegram/build/libs/mAuth-Telegram-1.0.0.jar

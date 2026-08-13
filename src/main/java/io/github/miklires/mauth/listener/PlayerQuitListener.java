@@ -23,6 +23,7 @@ public class PlayerQuitListener implements Listener {
         var player = event.getPlayer();
         boolean wasAuthenticated = plugin.getSessionManager().isAuthenticated(player);
         plugin.getSessionManager().clear(player);
+        plugin.getSessionManager().markOffline(player);
         plugin.getCaptchaManager().clear(player);
         plugin.getTotpService().clear(player.getUniqueId());
 

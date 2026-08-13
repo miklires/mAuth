@@ -11,23 +11,58 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew clean build :api:build :discord:build :velocity:build :bungee:build :telegram:build --no-daemon
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew clean build :api:build :discord:build :velocity:build :telegram:build --no-daemon
+      - name: Update Modrinth project page
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+        run: |
+          sed 's#](docs/assets/web-panel.png)#](https://raw.githubusercontent.com/miklires/mAuth/main/docs/assets/web-panel.png)#' README.md > modrinth-body.md
+          jq -n --rawfile body modrinth-body.md '{
+            title: "mAuth",
+            description: "Secure account authentication for Paper, Purpur, Folia, and Velocity networks.",
+            body: $body,
+            client_side: "unsupported",
+            server_side: "required",
+            source_url: "https://github.com/miklires/mAuth",
+            issues_url: "https://github.com/miklires/mAuth/issues",
+            license_id: "MIT"
+          }' > modrinth-project.json
+          curl --fail-with-body --request PATCH \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary @modrinth-project.json \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID"
+          curl --fail-with-body --request PATCH \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            --header "Content-Type: image/png" \
+            --data-binary @docs/assets/mauth-icon.png \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/icon?ext=png"
       - run: ./gradlew modrinth --no-daemon
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
-      - uses: softprops/action-gh-release@v2
+      - name: Submit Modrinth project for review
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+        run: |
+          curl --fail-with-body --request PATCH \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{"requested_status":"approved"}' \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID"
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
-            build/libs/mAuth-*.jar
-            api/build/libs/*.jar
-            discord/build/libs/*.jar
-            velocity/build/libs/*.jar
-            bungee/build/libs/*.jar
-            telegram/build/libs/*.jar
+            build/libs/mAuth-1.0.0.jar
+            api/build/libs/mAuth-API-1.0.0.jar
+            discord/build/libs/mAuth-Discord-1.0.0.jar
+            velocity/build/libs/mAuth-Velocity-1.0.0.jar
+            telegram/build/libs/mAuth-Telegram-1.0.0.jar

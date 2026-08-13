@@ -111,7 +111,8 @@ public class EmailCommand implements TabExecutor {
         }
         if (result.status() == EmailRecoveryService.Status.RESET) {
             plugin.getMessageUtil().send(sender, "email.recovery-complete");
-            Player target = plugin.getServer().getPlayerExact(username);
+            java.util.UUID uuid = plugin.getSessionManager().getOnlineUuid(username);
+            Player target = uuid == null ? null : plugin.getServer().getPlayer(uuid);
             if (target != null) {
                 plugin.getPluginScheduler().player(target, () -> {
                     plugin.getSessionManager().clear(target);

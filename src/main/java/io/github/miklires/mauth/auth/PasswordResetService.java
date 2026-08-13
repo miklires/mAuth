@@ -1,6 +1,5 @@
 package io.github.miklires.mauth.auth;
 
-import org.bukkit.Bukkit;
 import io.github.miklires.mauth.MAuth;
 import io.github.miklires.mauth.audit.AuditEvent;
 import io.github.miklires.mauth.model.Account;
@@ -73,7 +72,8 @@ public class PasswordResetService {
             a.setPasswordHash(plugin.getPasswordHasher().hash(password));
             a.setLastPasswordResetAt(Instant.now());
             plugin.getAccountRepository().update(a);
-            plugin.getSessionManager().invalidatePersistentSession(a.getUsername());
+            plugin.getSessionRepository().invalidate(a.getUsername());
+            plugin.getSessionManager().clearAccount(a.getUsername());
             plugin.getAuditLogger().log(AuditEvent.PASSWORD_RESET_TELEGRAM, a.getUsername(), null);
             return new ResetResult(Status.SUCCESS, password, a.getUsername());
         } catch (SQLException e) {
@@ -89,7 +89,8 @@ public class PasswordResetService {
             a.setLastPasswordResetAt(Instant.now());
         }
         plugin.getAccountRepository().update(a);
-        plugin.getSessionManager().invalidatePersistentSession(a.getUsername());
+        plugin.getSessionRepository().invalidate(a.getUsername());
+        plugin.getSessionManager().clearAccount(a.getUsername());
         plugin.getAuditLogger().log(
                 trackTimestamp ? AuditEvent.PASSWORD_RESET_DISCORD : AuditEvent.PASSWORD_RESET_CONSOLE,
                 a.getUsername(), null);
@@ -99,8 +100,7 @@ public class PasswordResetService {
     }
 
     private boolean isOnline(String username) {
-        return Bukkit.getOnlinePlayers().stream()
-                .anyMatch(p -> p.getName().equalsIgnoreCase(username));
+        return plugin.getSessionManager().isOnline(username);
     }
 
     private String generatePassword(int length) {

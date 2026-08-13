@@ -104,6 +104,8 @@ public class PlayerJoinListener implements Listener {
         String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
         String xuid = plugin.getFloodgateBridge().getXuid(uuid).orElse(null);
 
+        plugin.getSessionManager().markOnline(player);
+        if (!plugin.getPlayerStateStore().protect(player)) return;
         plugin.getLimboWorldManager().sendToLimbo(player);
 
         CompletableFuture.supplyAsync(() -> load(player.getName(), username, uuid, ip, xuid),
@@ -145,12 +147,16 @@ public class PlayerJoinListener implements Listener {
             }
             if (opt.isEmpty()) return new JoinResult(JoinState.NEW_ACCOUNT, null, false, false, null);
             Account a = opt.get();
+            boolean discordRequired = !a.hasDiscordLinked()
+                    && plugin.getConfigManager().getDiscordMode().requiresLink(
+                    a.getRegisteredAt(), plugin.getConfigManager().getDiscordRequiredAfter());
 
-            if (a.isPremiumEnabled() && uuid.equals(a.getPremiumUuid())) {
+            if (!discordRequired && a.isPremiumEnabled() && uuid.equals(a.getPremiumUuid())) {
                 return new JoinResult(JoinState.AUTHENTICATED, a, false, false,
                         PlayerAuthenticatedEvent.AuthReason.SESSION);
             }
-            if (ip != null && plugin.getSessionManager().hasValidIpSession(username, ip, uuid)) {
+            if (!discordRequired && ip != null
+                    && plugin.getSessionManager().hasValidIpSession(username, ip, uuid)) {
                 return new JoinResult(JoinState.AUTHENTICATED, a, false, false,
                         PlayerAuthenticatedEvent.AuthReason.SESSION);
             }
@@ -176,10 +182,7 @@ public class PlayerJoinListener implements Listener {
         }
 
         if (result.state == JoinState.AUTHENTICATED) {
-            plugin.getSessionManager().markAuthenticated(player, result.reason);
-            Location saved = plugin.getLimboWorldManager().parseLocation(result.account.getLastLocation());
-            Location actual = plugin.getLimboWorldManager().returnFromLimbo(player, saved);
-            if (saved == null && actual != null) saveLocation(result.account, actual);
+            plugin.getAuthManager().completeLogin(player, result.account, result.reason);
             plugin.getMessageUtil().send(player, "auth.logged-in");
             if (result.reason == PlayerAuthenticatedEvent.AuthReason.BEDROCK) {
                 plugin.getMessageUtil().send(player, "auth.bedrock-logged-in");
@@ -195,17 +198,6 @@ public class PlayerJoinListener implements Listener {
             plugin.getMessageUtil().send(player, "auth.please-login");
         }
         scheduleAuthTimeout(player);
-    }
-
-    private void saveLocation(Account a, Location location) {
-        a.setLastLocation(plugin.getLimboWorldManager().serializeLocation(location));
-        CompletableFuture.runAsync(() -> {
-            try {
-                plugin.getAccountRepository().update(a);
-            } catch (SQLException e) {
-                plugin.getLogger().warning("cannot save login location: " + e.getMessage());
-            }
-        }, plugin.getAuthExecutor());
     }
 
     private void scheduleAuthTimeout(Player player) {

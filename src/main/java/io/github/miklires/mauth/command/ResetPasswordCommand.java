@@ -47,6 +47,10 @@ public class ResetPasswordCommand implements CommandExecutor {
                     msg.send(sender, "admin.reset-success", MessageUtil.ph("player", target));
                     msg.send(sender, "admin.reset-password", MessageUtil.ph("password", result.newPassword));
                     msg.send(sender, "admin.reset-warning");
+                    java.util.UUID uuid = plugin.getSessionManager().getOnlineUuid(target);
+                    var player = uuid == null ? null : plugin.getServer().getPlayer(uuid);
+                    if (player != null) plugin.getPluginScheduler().player(player,
+                            () -> player.kick(msg.getPlain(player, "auth.password-reset-kick")));
                 }
                 case NOT_FOUND -> msg.send(sender, "admin.reset-not-found");
                 case DB_ERROR -> msg.send(sender, "auth.database-error");

@@ -46,17 +46,23 @@ public class LoginCommand implements CommandExecutor {
             msg.send(player, "auth.too-many-attempts", MessageUtil.ph("seconds", (int) seconds));
             return true;
         }
+        if (!plugin.getSessionManager().beginLogin(player.getUniqueId())) {
+            msg.send(player, "auth.login-pending");
+            return true;
+        }
         String ip = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : null;
-        plugin.getAuthManager().login(username, ip, player.getUniqueId(), args[0]).whenComplete((attempt, error) ->
-                plugin.getPluginScheduler().player(player, () -> {
-                    if (!player.isOnline()) return;
-                    if (error != null) {
-                        plugin.getLogger().severe("login task failed: " + error.getMessage());
-                        msg.send(player, "auth.database-error");
-                        return;
-                    }
-                    handleResult(player, msg, attempt);
-                }));
+        plugin.getAuthManager().login(username, ip, player.getUniqueId(), args[0]).whenComplete((attempt, error) -> {
+            plugin.getSessionManager().endLogin(player.getUniqueId());
+            plugin.getPluginScheduler().player(player, () -> {
+                if (!player.isOnline()) return;
+                if (error != null) {
+                    plugin.getLogger().severe("login task failed: " + error.getMessage());
+                    msg.send(player, "auth.database-error");
+                    return;
+                }
+                handleResult(player, msg, attempt);
+            });
+        });
         return true;
     }
 

@@ -84,7 +84,6 @@ public class RegisterCommand implements CommandExecutor {
             case TOO_MANY_ACCOUNTS -> msg.send(player, "auth.too-many-accounts");
             case DB_ERROR -> msg.send(player, "auth.database-error");
             case SUCCESS -> {
-                plugin.getSessionManager().markAuthenticated(player);
                 DiscordMode mode = plugin.getConfigManager().getDiscordMode();
                 if (mode.requiresForRegistration()) {
                     String code = plugin.getLinkCodeManager().generateCode(player.getName());
@@ -94,7 +93,9 @@ public class RegisterCommand implements CommandExecutor {
                             MessageUtil.ph("server_name", plugin.getConfigManager().getDiscordServerName()),
                             MessageUtil.ph("discord_link", plugin.getConfigManager().getDiscordInviteLink())));
                 } else {
-                    plugin.getLimboWorldManager().returnFromLimbo(player, null);
+                    plugin.getSessionManager().markAuthenticated(player);
+                    var saved = plugin.getPlayerStateStore().restore(player);
+                    plugin.getLimboWorldManager().returnFromLimbo(player, saved);
                     msg.send(player, "auth.registered");
                 }
             }

@@ -1,11 +1,17 @@
+config-version: 2
+
 storage:
   type: h2
+  file: mauth
+  jdbc-url: ""
   host: localhost
   port: 3306
   name: mauth
   user: mauth
   password: changeme
   pool-size: 10
+  connection-timeout-millis: 10000
+  max-lifetime-millis: 1800000
 
 language:
   default: en_US
@@ -17,7 +23,7 @@ discord:
   token: "YOUR_BOT_TOKEN"
   bot-name: "BotName#0000"
   invite-link: "https://discord.gg/REPLACE_ME"
-  server-name: "MossHeaven"
+  server-name: "Minecraft Server"
   guild-id: ""
   player-role-id: ""
   link-code-ttl-seconds: 300
@@ -44,13 +50,30 @@ security:
   auth-policy:
     new-ip: captcha
     new-device: notify
+  allowed-commands:
+    - register
+    - reg
+    - login
+    - l
+    - captcha
+    - 2fa
+    - totp
+    - recover
 
 whitelist:
   enabled: false
-  kick-message: "Тебя нет в белом списке."
+  kick-message: "<red>You are not whitelisted."
 
 limbo:
+  enabled: true
+  hide-inventory: true
   world-name: limbo
+  spawn:
+    x: 0.5
+    y: 100.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
 
 captcha:
   mode: auto
@@ -126,11 +149,14 @@ telegram:
   poll-timeout-seconds: 25
 
 metrics:
-  bstats-id: 0
+  enabled: true
+  bstats-id: 33343
 
 updates:
   enabled: true
-  modrinth-project-id: ""
+  modrinth-project-id: "xk0cx4UM"
+  interval-hours: 24
+  timeout-millis: 8000
 
 imports:
   authme:

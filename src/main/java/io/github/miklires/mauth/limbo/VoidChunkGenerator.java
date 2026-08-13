@@ -50,25 +50,28 @@ public class VoidChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public boolean shouldGenerateNoise() { return false; }
+    public boolean shouldGenerateNoise(@NotNull WorldInfo worldInfo, @NotNull Random random,
+                                       int chunkX, int chunkZ) { return false; }
 
     @Override
-    public boolean shouldGenerateSurface() { return false; }
+    public boolean shouldGenerateSurface(@NotNull WorldInfo worldInfo, @NotNull Random random,
+                                         int chunkX, int chunkZ) { return false; }
 
     @Override
-    public boolean shouldGenerateBedrock() { return false; }
+    public boolean shouldGenerateCaves(@NotNull WorldInfo worldInfo, @NotNull Random random,
+                                      int chunkX, int chunkZ) { return false; }
 
     @Override
-    public boolean shouldGenerateCaves() { return false; }
+    public boolean shouldGenerateDecorations(@NotNull WorldInfo worldInfo, @NotNull Random random,
+                                             int chunkX, int chunkZ) { return false; }
 
     @Override
-    public boolean shouldGenerateDecorations() { return false; }
+    public boolean shouldGenerateMobs(@NotNull WorldInfo worldInfo, @NotNull Random random,
+                                      int chunkX, int chunkZ) { return false; }
 
     @Override
-    public boolean shouldGenerateMobs() { return false; }
-
-    @Override
-    public boolean shouldGenerateStructures() { return false; }
+    public boolean shouldGenerateStructures(@NotNull WorldInfo worldInfo, @NotNull Random random,
+                                            int chunkX, int chunkZ) { return false; }
 
     @Override
     public Location getFixedSpawnLocation(@NotNull World world, @NotNull Random random) {

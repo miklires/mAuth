@@ -23,13 +23,7 @@ import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import io.github.miklires.mauth.MAuth;
 
-import java.util.Set;
-
 public class AuthRestrictionListener implements Listener {
-
-    private static final Set<String> ALLOWED_COMMANDS = Set.of(
-            "register", "reg", "login", "l", "captcha", "2fa", "totp", "recover"
-    );
 
     private final MAuth plugin;
 
@@ -50,7 +44,9 @@ public class AuthRestrictionListener implements Listener {
             return;
         }
         String cmd = msg.substring(1).split(" ", 2)[0].toLowerCase();
-        if (!ALLOWED_COMMANDS.contains(cmd)) {
+        int namespace = cmd.indexOf(':');
+        if (namespace >= 0) cmd = cmd.substring(namespace + 1);
+        if (!plugin.getConfigManager().getAllowedCommands().contains(cmd)) {
             e.setCancelled(true);
             plugin.getMessageUtil().send(e.getPlayer(), "auth.freeze-warning");
         }

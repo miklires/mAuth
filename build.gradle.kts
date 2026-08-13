@@ -106,5 +106,6 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("io.papermc.paper:paper-api:26.2.build.112-stable")
     testRuntimeOnly("com.maxmind.geoip2:geoip2:5.2.0")
 }

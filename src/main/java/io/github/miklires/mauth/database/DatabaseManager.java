@@ -49,8 +49,8 @@ public class DatabaseManager {
         }
         hc.setMaximumPoolSize(type == StorageType.SQLITE ? 1 : Math.max(2, cfg.getDbPoolSize()));
         hc.setPoolName("mAuth-" + type.name().toLowerCase(Locale.ROOT));
-        hc.setConnectionTimeout(10_000);
-        hc.setMaxLifetime(1_800_000);
+        hc.setConnectionTimeout(cfg.getDbConnectionTimeout());
+        hc.setMaxLifetime(cfg.getDbMaxLifetime());
         if (type == StorageType.SQLITE) hc.setConnectionTestQuery("SELECT 1");
 
         dataSource = new HikariDataSource(hc);
@@ -58,11 +58,15 @@ public class DatabaseManager {
     }
 
     private String jdbcUrl(ConfigManager cfg) {
+        if (!cfg.getJdbcUrl().isBlank()) return cfg.getJdbcUrl();
         File dir = plugin.getDataFolder();
         if (!dir.exists() && !dir.mkdirs()) {
             throw new IllegalStateException("cannot create plugin data folder");
         }
-        String path = new File(dir, "mauth").getAbsolutePath().replace('\\', '/');
+        String configured = cfg.getDbFile().isBlank() ? "mauth" : cfg.getDbFile();
+        File dbFile = new File(configured);
+        if (!dbFile.isAbsolute()) dbFile = new File(dir, configured);
+        String path = dbFile.getAbsolutePath().replace('\\', '/');
         return switch (type) {
             case H2 -> "jdbc:h2:file:" + path + ";AUTO_SERVER=TRUE";
             case SQLITE -> "jdbc:sqlite:" + path + ".db";

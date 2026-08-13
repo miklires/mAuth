@@ -3,6 +3,7 @@ prefix: "<gradient:#7CFC00:#32CD32><b>mAuth</b></gradient> <dark_gray>»</dark_g
 auth:
   please-register: "<yellow>Зарегистрируйтесь: <white>/register <пароль> <пароль>"
   please-login: "<yellow>Войдите в аккаунт: <white>/login <пароль>"
+  login-pending: "<yellow>Предыдущая попытка входа ещё проверяется."
   already-logged-in: "<red>Вы уже вошли."
   not-logged-in: "<red>Вы не вошли в аккаунт."
   registered: "<green>Аккаунт создан!"
@@ -33,7 +34,7 @@ auth:
   freeze-warning: "<yellow>Сначала пройдите авторизацию."
   kick-after-register: "<green><b>Аккаунт создан!</b></green>\n\n<gray>Привяжите Discord, чтобы играть на <gold><server_name></gold>.</gray>\n\n<gray>Отправьте код <yellow><b><code></b></yellow> боту <light_purple><bot_name></light_purple>.</gray>\n\n<aqua><discord_link></aqua>"
   kick-discord-required: "<red><b>Требуется привязка Discord</b></red>\n\n<gray>Привяжите Discord, чтобы играть на <gold><server_name></gold>.</gray>\n\n<gray>Отправьте код <yellow><b><code></b></yellow> боту <light_purple><bot_name></light_purple>.</gray>\n\n<aqua><discord_link></aqua>"
-  discord-reset-kick: "<yellow>Запрошен сброс пароля через Discord. Зайдите снова."
+  password-reset-kick: "<yellow>Запрошен сброс пароля. Зайдите снова."
 
 license:
   enabled: "<green>Премиум-вход включён. Заходите с лицензии."

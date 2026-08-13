@@ -3,6 +3,7 @@ prefix: "<gradient:#7CFC00:#32CD32><b>mAuth</b></gradient> <dark_gray>»</dark_g
 auth:
   please-register: "<yellow>Register with <white>/register <password> <password>"
   please-login: "<yellow>Log in with <white>/login <password>"
+  login-pending: "<yellow>Your previous login attempt is still being checked."
   already-logged-in: "<red>You are already logged in."
   not-logged-in: "<red>You are not logged in."
   registered: "<green>Account created."
@@ -33,7 +34,7 @@ auth:
   freeze-warning: "<yellow>Log in first."
   kick-after-register: "<green><b>Account created</b></green>\n\n<gray>Link Discord to play on <gold><server_name></gold>.</gray>\n\n<gray>Send code <yellow><b><code></b></yellow> to <light_purple><bot_name></light_purple>.</gray>\n\n<aqua><discord_link></aqua>"
   kick-discord-required: "<red><b>Discord link required</b></red>\n\n<gray>Link Discord to play on <gold><server_name></gold>.</gray>\n\n<gray>Send code <yellow><b><code></b></yellow> to <light_purple><bot_name></light_purple>.</gray>\n\n<aqua><discord_link></aqua>"
-  discord-reset-kick: "<yellow>Password reset requested through Discord. Join again."
+  password-reset-kick: "<yellow>A password reset was requested. Join again."
 
 license:
   enabled: "<green>Premium login enabled. Join with your paid account next time."

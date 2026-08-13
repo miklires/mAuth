@@ -41,6 +41,7 @@ import io.github.miklires.mauth.geoip.GeoIpService;
 import io.github.miklires.mauth.importer.AccountImporter;
 import io.github.miklires.mauth.discord.LinkCodeManager;
 import io.github.miklires.mauth.limbo.LimboWorldManager;
+import io.github.miklires.mauth.limbo.PlayerStateStore;
 import io.github.miklires.mauth.listener.AuthRestrictionListener;
 import io.github.miklires.mauth.listener.PlayerJoinListener;
 import io.github.miklires.mauth.listener.PlayerQuitListener;
@@ -90,6 +91,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
     private EmailRecoveryService emailRecoveryService;
     private LinkCodeManager linkCodeManager;
     private LimboWorldManager limboWorldManager;
+    private PlayerStateStore playerStateStore;
     private CaptchaManager captchaManager;
     private ExecutorService authExecutor;
     private PluginScheduler scheduler;
@@ -97,10 +99,8 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
 
     @Override
     public void onEnable() {
-        saveDefaultConfig();
-        saveResource("passwords-blacklist.txt", false);
-
         configManager = new ConfigManager(this);
+        configManager.load();
         scheduler = new PluginScheduler(this);
         if (configManager.getDiscordMode() == DiscordMode.REQUIRED_FOR_NEW
                 && configManager.getDiscordRequiredAfter() <= 0) {
@@ -160,16 +160,18 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
                 },
                 1, 1, TimeUnit.HOURS);
         linkCodeManager = new LinkCodeManager(this);
+        playerStateStore = new PlayerStateStore(this);
         limboWorldManager = new LimboWorldManager(this);
         scheduler.global(() -> limboWorldManager.initialize());
         captchaManager = new CaptchaManager(this);
         webPanelServer = new WebPanelServer(this);
         webPanelServer.start();
         int bstatsId = configManager.getBstatsId();
-        if (bstatsId > 0) new org.bstats.bukkit.Metrics(this, bstatsId);
+        if (configManager.isMetricsEnabled() && bstatsId > 0) new org.bstats.bukkit.Metrics(this, bstatsId);
         UpdateChecker updates = new UpdateChecker(this);
         scheduler.async(updates::check);
-        scheduler.asyncTimer(updates::check, 24, 24, TimeUnit.HOURS);
+        int updateHours = configManager.getUpdateIntervalHours();
+        scheduler.asyncTimer(updates::check, updateHours, updateHours, TimeUnit.HOURS);
 
         sessionGui = new SessionGui(this);
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -251,6 +253,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
     public EmailRecoveryService getEmailRecoveryService() { return emailRecoveryService; }
     public LinkCodeManager getLinkCodeManager() { return linkCodeManager; }
     public LimboWorldManager getLimboWorldManager() { return limboWorldManager; }
+    public PlayerStateStore getPlayerStateStore() { return playerStateStore; }
     public CaptchaManager getCaptchaManager() { return captchaManager; }
     public ExecutorService getAuthExecutor() { return authExecutor; }
     public PluginScheduler getPluginScheduler() { return scheduler; }
@@ -276,7 +279,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
         return CompletableFuture.runAsync(() -> {
             try {
                 sessionRepository.invalidate(username);
-                sessionManager.forgetAll(username);
+                sessionManager.clearAccount(username);
             } catch (java.sql.SQLException e) {
                 throw new java.util.concurrent.CompletionException(e);
             }

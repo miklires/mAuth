@@ -3,7 +3,7 @@ version: ${version}
 main: io.github.miklires.mauth.MAuth
 api-version: '26.2'
 author: miklires
-description: Authentication plugin with Discord linking
+description: Account authentication for offline-mode and mixed-mode servers
 load: STARTUP
 folia-supported: true
 softdepend: [floodgate, PlaceholderAPI]

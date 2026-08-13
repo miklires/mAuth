@@ -125,7 +125,7 @@ public class EmailRecoveryService {
             account.setLastPasswordResetAt(Instant.now());
             plugin.getAccountRepository().update(account);
             plugin.getSessionRepository().invalidate(username);
-            plugin.getSessionManager().forgetAll(username);
+            plugin.getSessionManager().clearAccount(username);
             recovery.remove(username);
             return new ResetResult(Status.RESET, null);
         } catch (SQLException e) {
