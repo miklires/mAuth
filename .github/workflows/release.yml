@@ -28,8 +28,8 @@ jobs:
             title: "mAuth",
             description: "Secure account authentication for Paper, Purpur, Folia, and Velocity networks.",
             body: $body,
-            client_side: "unsupported",
-            server_side: "required",
+            categories: ["management", "utility"],
+            additional_categories: ["social"],
             source_url: "https://github.com/miklires/mAuth",
             issues_url: "https://github.com/miklires/mAuth/issues",
             license_id: "MIT"

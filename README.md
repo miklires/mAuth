@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/miklires/mAuth/main/docs/assets/mauth-icon.png" alt="mAuth" width="160">
-</p>
-
 # mAuth
 
 mAuth handles account authentication for offline-mode and mixed-mode Minecraft networks. Password login, premium and Floodgate accounts, TOTP, recovery, active sessions, legacy imports, and proxy routing are included without requiring an external database.

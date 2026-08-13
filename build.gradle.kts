@@ -4,6 +4,9 @@ plugins {
     id("com.modrinth.minotaur") version "2.9.0"
 }
 
+group = "io.github.miklires"
+version = "1.0.0"
+
 modrinth {
     token.set(System.getenv("MODRINTH_TOKEN") ?: "")
     projectId.set(System.getenv("MODRINTH_PROJECT_ID") ?: "")
@@ -11,14 +14,14 @@ modrinth {
     versionName.set("mAuth ${project.version}")
     versionType.set("release")
     uploadFile.set(tasks.shadowJar)
+    additionalFiles {
+        other(layout.projectDirectory.file("velocity/build/libs/mAuth-Velocity-${project.version}.jar"))
+    }
     gameVersions.addAll("26.2")
-    loaders.addAll("paper", "purpur", "folia")
+    loaders.addAll("paper", "purpur", "folia", "velocity")
     changelog.set(provider { file("CHANGELOG.md").readText() })
     syncBodyFrom.set(file("README.md").readText())
 }
-
-group = "io.github.miklires"
-version = "1.0.0"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))

@@ -1,0 +1,104 @@
+name: modrinth metadata
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-id:
+        description: Modrinth version ID
+        required: true
+      version-number:
+        description: Version number
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build Velocity addon
+        run: ./gradlew :velocity:jar --no-daemon
+      - name: Update project metadata
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+        run: |
+          sed 's#](docs/assets/web-panel.png)#](https://raw.githubusercontent.com/miklires/mAuth/main/docs/assets/web-panel.png)#' README.md > modrinth-body.md
+          jq -n --rawfile body modrinth-body.md '{
+            title: "mAuth",
+            description: "Secure account authentication for Paper, Purpur, Folia, and Velocity networks.",
+            body: $body,
+            categories: ["management", "utility"],
+            additional_categories: ["social"],
+            source_url: "https://github.com/miklires/mAuth",
+            issues_url: "https://github.com/miklires/mAuth/issues",
+            license_id: "MIT"
+          }' > modrinth-project.json
+          curl --fail-with-body --request PATCH \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary @modrinth-project.json \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID"
+          curl --fail-with-body --request PATCH \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            --header "Content-Type: image/png" \
+            --data-binary @docs/assets/mauth-icon.png \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/icon?ext=png"
+      - name: Update version metadata
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          VERSION_ID: ${{ inputs.version-id }}
+          VERSION_NUMBER: ${{ inputs.version-number }}
+        run: |
+          jq -n --arg number "$VERSION_NUMBER" '{
+            name: ("mAuth " + $number),
+            version_number: $number,
+            version_type: "release",
+            featured: true,
+            game_versions: ["26.2"],
+            loaders: ["paper", "purpur", "folia", "velocity"]
+          }' > modrinth-version.json
+          curl --fail-with-body --request PATCH \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary @modrinth-version.json \
+            "https://api.modrinth.com/v2/version/$VERSION_ID"
+      - name: Upload Velocity addon
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          VERSION_ID: ${{ inputs.version-id }}
+        run: |
+          file="velocity/build/libs/mAuth-Velocity-${{ inputs.version-number }}.jar"
+          hash="$(sha1sum "$file" | cut -d ' ' -f 1)"
+          present="$(curl --fail-with-body --silent \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            "https://api.modrinth.com/v2/version/$VERSION_ID" \
+            | jq --arg hash "$hash" 'any(.files[]; .hashes.sha1 == $hash)')"
+          if [ "$present" != "true" ]; then
+            curl --fail-with-body --request POST \
+              --header "Authorization: $MODRINTH_TOKEN" \
+              --form-string 'data={}' \
+              --form "file=@$file;type=application/java-archive" \
+              "https://api.modrinth.com/v2/version/$VERSION_ID/file"
+          fi
+      - name: Verify metadata
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+          VERSION_ID: ${{ inputs.version-id }}
+        run: |
+          curl --fail-with-body --silent \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID" \
+            | jq '{id, slug, status, requested_status, categories, additional_categories, icon_url}'
+          curl --fail-with-body --silent \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            "https://api.modrinth.com/v2/version/$VERSION_ID" \
+            | jq '{id, name, version_number, status, requested_status, game_versions, loaders, featured, files: [.files[].filename]}'
