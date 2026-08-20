@@ -1,19 +1,27 @@
-# mAuth
+<div align="center">
+  <h1>mAuth</h1>
+  <p>Account authentication for offline-mode and mixed-mode Minecraft networks.</p>
 
-mAuth handles account authentication for offline-mode and mixed-mode Minecraft networks. Password login, premium and Floodgate accounts, TOTP, recovery, active sessions, legacy imports, and proxy routing are included without requiring an external database.
+  <p>
+    <a href="https://papermc.io/software/paper"><img alt="Paper" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/paper_vector.svg"></a>
+    <a href="https://purpurmc.org"><img alt="Purpur" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/purpur_vector.svg"></a>
+    <a href="https://papermc.io/software/folia"><img alt="Folia" height="56" src="https://raw.githubusercontent.com/miklires/mAuth/main/docs/assets/folia-available.png"></a>
+    <a href="https://papermc.io/software/velocity"><img alt="Velocity" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/velocity_vector.svg"></a>
+  </p>
 
-<p>
-  <a href="https://papermc.io/software/paper"><img alt="Paper" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/paper_vector.svg"></a>
-  <a href="https://purpurmc.org"><img alt="Purpur" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/purpur_vector.svg"></a>
-  <a href="https://papermc.io/software/velocity"><img alt="Velocity" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/velocity_vector.svg"></a>
-</p>
+  <p>
+    <a href="https://github.com/miklires/mAuth"><img alt="GitHub" src="https://tr7zw.github.io/uikit/social_buttons_icon/Github-Button-64.png"></a>
+    <a href="https://modrinth.com/plugin/mauth"><img alt="Modrinth" src="https://tr7zw.github.io/uikit/social_buttons_icon/Modrinth-Button-64.png"></a>
+  </p>
 
-<p>
-  <a href="https://github.com/miklires/mAuth"><img alt="GitHub" src="https://tr7zw.github.io/uikit/social_buttons_icon/Github-Button-64.png"></a>
-  <a href="https://modrinth.com/plugin/mauth"><img alt="Modrinth" src="https://tr7zw.github.io/uikit/social_buttons_icon/Modrinth-Button-64.png"></a>
-</p>
+  <p>
+    <a href="https://bstats.org/plugin/bukkit/mAuth/33343"><img alt="bStats" src="https://img.shields.io/badge/bStats-33343-2F9BE6?style=for-the-badge"></a>
+    <a href="https://github.com/miklires/mAuth/releases/tag/v1.0.0"><img alt="Release 1.0.0" src="https://img.shields.io/github/v/release/miklires/mAuth?style=for-the-badge"></a>
+    <img alt="Java 25" src="https://img.shields.io/badge/Java-25-5382A1?style=for-the-badge">
+  </p>
+</div>
 
-Folia is supported by the core plugin. Discord, Telegram, and Velocity are separate addons.
+Password login, premium and Floodgate accounts, TOTP, recovery, active sessions, legacy imports, and proxy routing are included without requiring an external database. Discord, Telegram, and Velocity are separate addons.
 
 ## What it does
 
@@ -79,6 +87,10 @@ The protected panel lists accounts and active sessions and lets an administrator
 ## PlaceholderAPI
 
 When PlaceholderAPI is installed, mAuth registers `%mauth_authenticated%`, `%mauth_status%`, and `%mauth_version%`.
+
+## Telemetry and updates
+
+mAuth uses [bStats plugin ID 33343](https://bstats.org/plugin/bukkit/mAuth/33343) for anonymous usage statistics. Disable collection with `metrics.enabled: false`. The update checker reads the public Modrinth project and can be disabled independently with `updates.enabled: false`.
 
 ## Build
 
