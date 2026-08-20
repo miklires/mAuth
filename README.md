@@ -11,7 +11,7 @@
 
   <p>
     <a href="https://github.com/miklires/mAuth"><img alt="GitHub" src="https://tr7zw.github.io/uikit/social_buttons_icon/Github-Button-64.png"></a>
-    <a href="https://modrinth.com/plugin/mauth"><img alt="Modrinth" src="https://tr7zw.github.io/uikit/social_buttons_icon/Modrinth-Button-64.png"></a>
+    <a href="https://modrinth.com/project/mauth"><img alt="Modrinth" src="https://tr7zw.github.io/uikit/social_buttons_icon/Modrinth-Button-64.png"></a>
   </p>
 
   <p>
