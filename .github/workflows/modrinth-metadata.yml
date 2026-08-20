@@ -5,10 +5,10 @@ on:
     inputs:
       version-id:
         description: Modrinth version ID
-        required: true
+        required: false
       version-number:
         description: Version number
-        required: true
+        required: false
 
 permissions:
   contents: read
@@ -24,6 +24,7 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
       - name: Build Velocity addon
+        if: ${{ inputs.version-id != '' && inputs.version-number != '' }}
         run: ./gradlew :velocity:jar --no-daemon
       - name: Update project metadata
         env:
@@ -52,6 +53,7 @@ jobs:
             --data-binary @docs/assets/mauth-icon.png \
             "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/icon?ext=png"
       - name: Update version metadata
+        if: ${{ inputs.version-id != '' && inputs.version-number != '' }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           VERSION_ID: ${{ inputs.version-id }}
@@ -71,6 +73,7 @@ jobs:
             --data-binary @modrinth-version.json \
             "https://api.modrinth.com/v2/version/$VERSION_ID"
       - name: Upload Velocity addon
+        if: ${{ inputs.version-id != '' && inputs.version-number != '' }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           VERSION_ID: ${{ inputs.version-id }}
@@ -98,7 +101,9 @@ jobs:
             --header "Authorization: $MODRINTH_TOKEN" \
             "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID" \
             | jq '{id, slug, status, requested_status, categories, additional_categories, icon_url}'
-          curl --fail-with-body --silent \
-            --header "Authorization: $MODRINTH_TOKEN" \
-            "https://api.modrinth.com/v2/version/$VERSION_ID" \
-            | jq '{id, name, version_number, status, requested_status, game_versions, loaders, featured, files: [.files[].filename]}'
+          if [ -n "$VERSION_ID" ]; then
+            curl --fail-with-body --silent \
+              --header "Authorization: $MODRINTH_TOKEN" \
+              "https://api.modrinth.com/v2/version/$VERSION_ID" \
+              | jq '{id, name, version_number, status, requested_status, game_versions, loaders, featured, files: [.files[].filename]}'
+          fi
