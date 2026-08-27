@@ -1,6 +1,8 @@
-config-version: 2
+config-version: 3
 
 storage:
+  # H2 works without extra setup. For MySQL/MariaDB/PostgreSQL, fill the remote
+  # connection fields below and keep credentials outside public backups.
   type: h2
   file: mauth
   jdbc-url: ""
@@ -8,7 +10,7 @@ storage:
   port: 3306
   name: mauth
   user: mauth
-  password: changeme
+  password: ""
   pool-size: 10
   connection-timeout-millis: 10000
   max-lifetime-millis: 1800000
@@ -18,6 +20,7 @@ language:
   per-player: true
 
 discord:
+  # Optional integration. Leave disabled until the bot token and IDs are set.
   mode: disabled
   required-for-new-after: 0
   token: "YOUR_BOT_TOKEN"
@@ -41,10 +44,20 @@ security:
   login-attempt-window-seconds: 300
   lockout-seconds: 600
   session-ttl-seconds: 3600
+  # Never auto-login by IP after that address has been used by multiple accounts.
+  block-shared-ip-sessions: true
   freeze-on-join: true
-  auth-timeout-seconds: 60
+  # Set either timeout to 0 to disable it. Existing v2 configs are migrated from
+  # auth-timeout-seconds without overwriting an administrator's chosen value.
+  login-timeout-seconds: 60
+  registration-timeout-seconds: 120
+  auth-bossbar:
+    enabled: true
+    color: RED
+    overlay: PROGRESS
   max-accounts-per-ip: 3
   enforce-username-case: true
+  block-duplicate-sessions: true
   totp-issuer: "mAuth"
   data-encryption-key: ""
   auth-policy:
@@ -92,14 +105,16 @@ audit:
   retention-days: 90
 
 geoip:
-  enabled: true
+  # Requires a GeoLite2 City database file. Disabled for a clean first launch.
+  enabled: false
   database: "GeoLite2-City.mmdb"
   download-on-missing: false
   download-url: ""
   notify-discord: true
 
 floodgate:
-  enabled: true
+  # Enable only when Floodgate is installed and Bedrock auto-registration is wanted.
+  enabled: false
   auto-register: true
 
 proxy:
@@ -118,6 +133,8 @@ vpn:
     timeout-millis: 3000
 
 web:
+  # The panel has no TLS termination. Keep the loopback bind and use a reverse
+  # proxy when exposing it. A random token is generated when this field is blank.
   enabled: false
   bind: "127.0.0.1"
   port: 8765

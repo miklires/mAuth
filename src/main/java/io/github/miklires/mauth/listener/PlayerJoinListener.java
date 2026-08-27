@@ -39,6 +39,12 @@ public class PlayerJoinListener implements Listener {
             return;
         }
         String username = enteredName.toLowerCase();
+        if (plugin.getConfigManager().isDuplicateSessionBlocked()
+                && plugin.getSessionManager().isOnline(username)) {
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
+                    plugin.getMessageUtil().getPlain("auth.duplicate-session"));
+            return;
+        }
         try {
             Optional<Account> opt = plugin.getAccountRepository().findByUsername(username);
             if (opt.isEmpty() && plugin.getConfigManager().isAttackWhitelistMode()
@@ -106,10 +112,16 @@ public class PlayerJoinListener implements Listener {
 
         plugin.getSessionManager().markOnline(player);
         if (!plugin.getPlayerStateStore().protect(player)) return;
-        plugin.getLimboWorldManager().sendToLimbo(player);
+        CompletableFuture<Boolean> limboReady = plugin.getLimboWorldManager().sendToLimbo(player)
+                .exceptionally(error -> {
+                    plugin.getLogger().warning("cannot send " + player.getName()
+                            + " to limbo: " + error.getMessage());
+                    return false;
+                });
 
         CompletableFuture.supplyAsync(() -> load(player.getName(), username, uuid, ip, xuid),
                         plugin.getAuthExecutor())
+                .thenCombine(limboReady, (result, ignored) -> result)
                 .whenComplete((result, error) -> plugin.getPluginScheduler().player(player, () -> {
                     if (!player.isOnline()) return;
                     if (error != null) {
@@ -155,7 +167,9 @@ public class PlayerJoinListener implements Listener {
                 return new JoinResult(JoinState.AUTHENTICATED, a, false, false,
                         PlayerAuthenticatedEvent.AuthReason.SESSION);
             }
-            if (!discordRequired && ip != null
+            boolean sharedIp = ip != null && plugin.getConfigManager().isSharedIpSessionBlocked()
+                    && plugin.getKnownIpRepository().countAccounts(ip) > 1;
+            if (!discordRequired && !sharedIp && ip != null
                     && plugin.getSessionManager().hasValidIpSession(username, ip, uuid)) {
                 return new JoinResult(JoinState.AUTHENTICATED, a, false, false,
                         PlayerAuthenticatedEvent.AuthReason.SESSION);
@@ -177,7 +191,7 @@ public class PlayerJoinListener implements Listener {
             } else {
                 plugin.getMessageUtil().send(player, "auth.please-register");
             }
-            scheduleAuthTimeout(player);
+            plugin.getAuthTimeoutManager().startRegistration(player);
             return;
         }
 
@@ -197,17 +211,7 @@ public class PlayerJoinListener implements Listener {
         } else {
             plugin.getMessageUtil().send(player, "auth.please-login");
         }
-        scheduleAuthTimeout(player);
-    }
-
-    private void scheduleAuthTimeout(Player player) {
-        int timeout = plugin.getConfigManager().getAuthTimeout();
-        if (timeout <= 0) return;
-        plugin.getPluginScheduler().playerLater(player, () -> {
-            if (player.isOnline() && !plugin.getSessionManager().isAuthenticated(player)) {
-                player.kick(plugin.getMessageUtil().getPlain(player, "auth.auth-timeout"));
-            }
-        }, timeout * 20L);
+        plugin.getAuthTimeoutManager().startLogin(player);
     }
 
     private enum JoinState {

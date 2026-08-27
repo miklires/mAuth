@@ -93,6 +93,7 @@ public class RegisterCommand implements CommandExecutor {
                             MessageUtil.ph("server_name", plugin.getConfigManager().getDiscordServerName()),
                             MessageUtil.ph("discord_link", plugin.getConfigManager().getDiscordInviteLink())));
                 } else {
+                    plugin.getAuthTimeoutManager().cancel(player);
                     plugin.getSessionManager().markAuthenticated(player);
                     var saved = plugin.getPlayerStateStore().restore(player);
                     plugin.getLimboWorldManager().returnFromLimbo(player, saved);

@@ -26,6 +26,7 @@ public class PlayerQuitListener implements Listener {
         plugin.getSessionManager().markOffline(player);
         plugin.getCaptchaManager().clear(player);
         plugin.getTotpService().clear(player.getUniqueId());
+        plugin.getAuthTimeoutManager().cancel(player);
 
         if (!wasAuthenticated) return;
         if (plugin.getLimboWorldManager().isInLimbo(player)) return;

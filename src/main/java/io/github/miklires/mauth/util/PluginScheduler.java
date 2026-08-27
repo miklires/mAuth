@@ -21,6 +21,10 @@ public class PluginScheduler {
         player.getScheduler().execute(plugin, task, null, 1L);
     }
 
+    public void player(Player player, Runnable task, Runnable retired) {
+        player.getScheduler().execute(plugin, task, retired, 1L);
+    }
+
     public void playerLater(Player player, Runnable task, long ticks) {
         player.getScheduler().execute(plugin, task, null, Math.max(1L, ticks));
     }

@@ -5,6 +5,7 @@ import io.github.miklires.mauth.audit.AuditEvent;
 import io.github.miklires.mauth.api.MAuthApi;
 import io.github.miklires.mauth.audit.AuditLogger;
 import io.github.miklires.mauth.auth.AuthManager;
+import io.github.miklires.mauth.auth.AuthTimeoutManager;
 import io.github.miklires.mauth.auth.DiscordMode;
 import io.github.miklires.mauth.auth.FloodgateBridge;
 import io.github.miklires.mauth.auth.PasswordHasher;
@@ -80,6 +81,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
     private PremiumProfileService premiumProfileService;
     private SessionManager sessionManager;
     private AuthManager authManager;
+    private AuthTimeoutManager authTimeoutManager;
     private PasswordResetService passwordResetService;
     private AuditLogger auditLogger;
     private GeoIpService geoIpService;
@@ -139,6 +141,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
         sessionManager = new SessionManager(this);
         getServer().getServicesManager().register(MAuthApi.class, this, this, ServicePriority.Normal);
         authManager = new AuthManager(this);
+        authTimeoutManager = new AuthTimeoutManager(this);
         passwordResetService = new PasswordResetService(this);
         emailRecoveryService = new EmailRecoveryService(this);
         auditLogger = new AuditLogger(this);
@@ -186,6 +189,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
 
     @Override
     public void onDisable() {
+        if (authTimeoutManager != null) authTimeoutManager.close();
         if (authExecutor != null) {
             authExecutor.shutdown();
             try {
@@ -243,6 +247,7 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
     public PremiumProfileService getPremiumProfileService() { return premiumProfileService; }
     public SessionManager getSessionManager() { return sessionManager; }
     public AuthManager getAuthManager() { return authManager; }
+    public AuthTimeoutManager getAuthTimeoutManager() { return authTimeoutManager; }
     public PasswordResetService getPasswordResetService() { return passwordResetService; }
     public AuditLogger getAuditLogger() { return auditLogger; }
     public GeoIpService getGeoIpService() { return geoIpService; }

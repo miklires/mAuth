@@ -10,6 +10,8 @@ import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
 import io.github.miklires.mauth.MAuth;
 
+import java.util.concurrent.CompletableFuture;
+
 public class LimboWorldManager {
 
     private final MAuth plugin;
@@ -81,16 +83,24 @@ public class LimboWorldManager {
         return player.getWorld().equals(limboWorld);
     }
 
-    public void sendToLimbo(Player player) {
-        if (limboWorld == null) return;
+    public CompletableFuture<Boolean> sendToLimbo(Player player) {
+        if (limboWorld == null) return CompletableFuture.completedFuture(false);
         Location spawn = new Location(limboWorld,
                 plugin.getConfigManager().getLimboX(),
                 plugin.getConfigManager().getLimboY(),
                 plugin.getConfigManager().getLimboZ(),
                 plugin.getConfigManager().getLimboYaw(),
                 plugin.getConfigManager().getLimboPitch());
-        player.teleportAsync(spawn).thenAccept(moved -> {
-            if (!moved || !player.isOnline()) return;
+        CompletableFuture<Boolean> ready = new CompletableFuture<>();
+        player.teleportAsync(spawn).whenComplete((moved, error) -> {
+            if (error != null) {
+                ready.completeExceptionally(error);
+                return;
+            }
+            if (!moved || !player.isOnline()) {
+                ready.complete(false);
+                return;
+            }
             plugin.getPluginScheduler().player(player, () -> {
                 player.setGameMode(GameMode.ADVENTURE);
                 player.setFlying(false);
@@ -98,8 +108,10 @@ public class LimboWorldManager {
                 player.setFlying(true);
                 player.setHealth(20);
                 player.setFoodLevel(20);
-            });
+                ready.complete(true);
+            }, () -> ready.complete(false));
         });
+        return ready;
     }
 
     public Location parseLocation(String serialized) {

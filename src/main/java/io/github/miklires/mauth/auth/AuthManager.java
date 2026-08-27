@@ -153,6 +153,7 @@ public class AuthManager {
 
     public void completeLogin(Player player, Account account,
                               io.github.miklires.mauth.api.PlayerAuthenticatedEvent.AuthReason reason) {
+        plugin.getAuthTimeoutManager().cancel(player);
         plugin.getFloodgateBridge().getXuid(player.getUniqueId()).ifPresent(xuid -> {
             if (account.getBedrockXuid() != null) return;
             account.setBedrockXuid(xuid);

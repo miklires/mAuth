@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 public class ConfigManager {
 
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
     private final MAuth plugin;
 
     public ConfigManager(MAuth plugin) {
@@ -26,12 +26,23 @@ public class ConfigManager {
         plugin.saveDefaultConfig();
         int version = cfg().getInt("config-version", 0);
         if (version < CONFIG_VERSION) {
+            if (version > 0 && version < 3) migrateAuthenticationTimeouts();
             cfg().options().copyDefaults(true);
             cfg().set("config-version", CONFIG_VERSION);
             plugin.saveConfig();
             if (version > 0) plugin.getLogger().info("config updated to version " + CONFIG_VERSION);
         } else if (version > CONFIG_VERSION) {
             plugin.getLogger().warning("config is from a newer mAuth version");
+        }
+    }
+
+    private void migrateAuthenticationTimeouts() {
+        int legacy = range("security.auth-timeout-seconds", 60, 0, 3_600);
+        if (!cfg().isSet("security.login-timeout-seconds")) {
+            cfg().set("security.login-timeout-seconds", legacy);
+        }
+        if (!cfg().isSet("security.registration-timeout-seconds")) {
+            cfg().set("security.registration-timeout-seconds", legacy);
         }
     }
 
@@ -79,10 +90,16 @@ public class ConfigManager {
     public int getLoginAttemptWindow() { return range("security.login-attempt-window-seconds", 300, 1, 86_400); }
     public int getLockoutSeconds() { return range("security.lockout-seconds", 600, 1, 604_800); }
     public int getSessionTtl() { return range("security.session-ttl-seconds", 3600, 0, 2_592_000); }
+    public boolean isSharedIpSessionBlocked() { return cfg().getBoolean("security.block-shared-ip-sessions", true); }
     public boolean isFreezeOnJoin() { return cfg().getBoolean("security.freeze-on-join", true); }
-    public int getAuthTimeout() { return range("security.auth-timeout-seconds", 60, 0, 3_600); }
+    public int getLoginTimeout() { return range("security.login-timeout-seconds", 60, 0, 3_600); }
+    public int getRegistrationTimeout() { return range("security.registration-timeout-seconds", 120, 0, 3_600); }
+    public boolean isAuthBossBarEnabled() { return cfg().getBoolean("security.auth-bossbar.enabled", true); }
+    public String getAuthBossBarColor() { return cfg().getString("security.auth-bossbar.color", "RED"); }
+    public String getAuthBossBarOverlay() { return cfg().getString("security.auth-bossbar.overlay", "PROGRESS"); }
     public int getMaxAccountsPerIp() { return Math.max(0, cfg().getInt("security.max-accounts-per-ip", 3)); }
     public boolean isUsernameCaseEnforced() { return cfg().getBoolean("security.enforce-username-case", true); }
+    public boolean isDuplicateSessionBlocked() { return cfg().getBoolean("security.block-duplicate-sessions", true); }
     public String getNewIpPolicy() { return policy("security.auth-policy.new-ip", "captcha", "allow", "captcha", "deny"); }
     public String getNewDevicePolicy() { return policy("security.auth-policy.new-device", "notify", "allow", "notify", "deny"); }
     public Set<String> getAllowedCommands() {
