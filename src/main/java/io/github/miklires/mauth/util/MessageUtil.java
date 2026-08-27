@@ -115,10 +115,10 @@ public class MessageUtil {
     }
 
     public static TagResolver ph(String key, String value) {
-        return Placeholder.parsed(key, value);
+        return Placeholder.unparsed(key, value == null ? "" : value);
     }
 
     public static TagResolver ph(String key, int value) {
-        return Placeholder.parsed(key, String.valueOf(value));
+        return Placeholder.unparsed(key, String.valueOf(value));
     }
 }
