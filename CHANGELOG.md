@@ -2,7 +2,7 @@
 
 This project follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 1.0.1 - 2026-08-27
 
 - Fixed an async teleport race that could leave session-authenticated players in limbo
 - Fixed incomplete Brigadier commands returning generic syntax errors instead of localized usage

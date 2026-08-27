@@ -39,11 +39,6 @@ jobs:
             --header "Content-Type: application/json" \
             --data-binary @modrinth-project.json \
             "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID"
-          curl --fail-with-body --request PATCH \
-            --header "Authorization: $MODRINTH_TOKEN" \
-            --header "Content-Type: image/png" \
-            --data-binary @docs/assets/mauth-icon.png \
-            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/icon?ext=png"
       - run: ./gradlew modrinth --no-daemon
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
@@ -61,8 +56,8 @@ jobs:
       - uses: softprops/action-gh-release@v3
         with:
           files: |
-            build/libs/mAuth-1.0.0.jar
-            api/build/libs/mAuth-API-1.0.0.jar
-            discord/build/libs/mAuth-Discord-1.0.0.jar
-            velocity/build/libs/mAuth-Velocity-1.0.0.jar
-            telegram/build/libs/mAuth-Telegram-1.0.0.jar
+            build/libs/mAuth-1.0.1.jar
+            api/build/libs/mAuth-API-1.0.1.jar
+            discord/build/libs/mAuth-Discord-1.0.1.jar
+            velocity/build/libs/mAuth-Velocity-1.0.1.jar
+            telegram/build/libs/mAuth-Telegram-1.0.1.jar

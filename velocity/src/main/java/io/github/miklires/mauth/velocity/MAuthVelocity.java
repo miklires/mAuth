@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Plugin(id = "mauth-velocity", name = "mAuth Velocity", version = "1.0.0",
+@Plugin(id = "mauth-velocity", name = "mAuth Velocity", version = "1.0.1",
         authors = {"miklires"})
 public class MAuthVelocity {
 

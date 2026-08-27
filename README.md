@@ -16,7 +16,7 @@
 
   <p>
     <a href="https://bstats.org/plugin/bukkit/mAuth/33343"><img alt="bStats" src="https://img.shields.io/badge/bStats-33343-2F9BE6?style=for-the-badge"></a>
-    <a href="https://github.com/miklires/mAuth/releases/tag/v1.0.0"><img alt="Release 1.0.0" src="https://img.shields.io/github/v/release/miklires/mAuth?style=for-the-badge"></a>
+    <a href="https://github.com/miklires/mAuth/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/miklires/mAuth?style=for-the-badge"></a>
     <img alt="Java 25" src="https://img.shields.io/badge/Java-25-5382A1?style=for-the-badge">
   </p>
 </div>
@@ -43,7 +43,7 @@ Password login, premium and Floodgate accounts, TOTP, recovery, active sessions,
 
 ## Install
 
-1. Put `mAuth-1.0.0.jar` in the backend server `plugins` directory.
+1. Put `mAuth-1.0.1.jar` in the backend server `plugins` directory.
 2. Start the server once and edit `plugins/mAuth/config.yml`.
 3. Add optional addon jars beside the core jar.
 4. For proxy mode, set the same `shared-secret` on the proxy and backend.
@@ -72,11 +72,11 @@ The protected panel lists accounts and active sessions and lets an administrator
 
 ## Artifacts
 
-- `mAuth-1.0.0.jar`: Paper, Purpur, and Folia core
-- `mAuth-API-1.0.0.jar`: public interfaces and authentication event
-- `mAuth-Velocity-1.0.0.jar`: Velocity login routing and mixed-mode support
-- `mAuth-Discord-1.0.0.jar`: Discord linking and recovery
-- `mAuth-Telegram-1.0.0.jar`: Telegram linking and recovery
+- `mAuth-1.0.1.jar`: Paper, Purpur, and Folia core
+- `mAuth-API-1.0.1.jar`: public interfaces and authentication event
+- `mAuth-Velocity-1.0.1.jar`: Velocity login routing and mixed-mode support
+- `mAuth-Discord-1.0.1.jar`: Discord linking and recovery
+- `mAuth-Telegram-1.0.1.jar`: Telegram linking and recovery
 
 ## Player commands
 
