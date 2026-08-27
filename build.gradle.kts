@@ -14,11 +14,8 @@ modrinth {
     versionName.set("mAuth ${project.version}")
     versionType.set("release")
     uploadFile.set(tasks.shadowJar)
-    additionalFiles {
-        other(layout.projectDirectory.file("velocity/build/libs/mAuth-Velocity-${project.version}.jar"))
-    }
     gameVersions.addAll("26.2")
-    loaders.addAll("paper", "purpur", "folia", "velocity")
+    loaders.addAll("paper", "purpur", "folia")
     changelog.set(provider { file("CHANGELOG.md").readText() })
     syncBodyFrom.set(file("README.md").readText())
 }

@@ -50,11 +50,6 @@ jobs:
             --header "Content-Type: application/json" \
             --data-binary @modrinth-project.json \
             "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID"
-          curl --fail-with-body --request PATCH \
-            --header "Authorization: $MODRINTH_TOKEN" \
-            --header "Content-Type: image/png" \
-            --data-binary @docs/assets/mauth-icon.png \
-            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/icon?ext=png"
       - name: Update telemetry disclosure
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
