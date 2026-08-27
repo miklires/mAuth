@@ -2,6 +2,15 @@
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+- Fixed an async teleport race that could leave session-authenticated players in limbo
+- Fixed incomplete Brigadier commands returning generic syntax errors instead of localized usage
+- Added separate login and registration deadlines with an optional localized bossbar countdown
+- Added configurable duplicate-session and shared-IP session protection
+- Kept English as the clean-install default and preserved explicit language choices during config migration
+- Updated security-sensitive runtime dependencies
+
 ## 1.0.0 - 2026-08-13
 
 - Added asynchronous Argon2id authentication with legacy hash migration

@@ -29,7 +29,9 @@ Password login, premium and Floodgate accounts, TOTP, recovery, active sessions,
 - H2, SQLite, MySQL, MariaDB, and PostgreSQL storage with schema upgrades
 - premium accounts through Velocity and Bedrock autologin through Floodgate
 - TOTP, recovery codes, verified email recovery, sessions, and account locks
-- login captcha, connection flood handling, IP limits, nickname filters, and VPN providers
+- login captcha, connection flood handling, IP limits, shared-IP session protection, nickname filters, and VPN providers
+- separate login/registration deadlines with a localized countdown boss bar
+- duplicate-session protection and reliable save/restore around the built-in limbo world
 - account imports from AuthMe, nLogin, LibreLogin, and OpeNLogin
 - a protected local web panel, PlaceholderAPI values, audit history, and bStats
 
@@ -50,7 +52,7 @@ H2 is the default storage. Discord, Telegram, email, VPN lookup, and the web pan
 
 ## Configuration
 
-- `security`: password hashing, login limits, TOTP encryption, sessions, captcha policy, and new IP or device handling
+- `security`: password hashing, separate login/registration timeouts, bossbar, login limits, TOTP encryption, sessions, duplicate-session protection, and new IP or device handling
 - `storage`: database type, local file, pool settings, or a complete JDBC URL override
 - `discord`, `telegram`, and `email`: account linking, verification, notifications, and recovery
 - `proxy.shared-secret`: signed synchronization with the Velocity addon
@@ -78,7 +80,7 @@ The protected panel lists accounts and active sessions and lets an administrator
 
 ## Player commands
 
-`/register`, `/login`, `/logout`, `/changepassword`, `/premium`, `/cracked`, `/2fa`, `/sessions`, `/email`, `/recover`, and `/telegram` are registered through the Paper Commands API. Command suggestions and syntax depend on permissions.
+`/register`, `/login`, `/logout`, `/changepassword`, `/premium`, `/cracked`, `/2fa`, `/sessions`, `/email`, `/recover`, and `/telegram` are registered through the Paper Commands API. Incomplete commands are handled by mAuth and show localized usage instead of the server's generic syntax error.
 
 ## Administration
 
