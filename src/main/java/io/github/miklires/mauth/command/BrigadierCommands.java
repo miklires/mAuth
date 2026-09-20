@@ -34,7 +34,8 @@ public class BrigadierCommands {
                 new ChangePasswordCommand(plugin), args("old", "new"));
         simple(commands, "license", "Enable premium login", List.of("premium"),
                 new LicenseCommand(plugin), null);
-        simple(commands, "cracked", "Disable premium login", List.of(), new CrackedCommand(plugin), null);
+        simple(commands, "passwordlogin", "Require password login", List.of(),
+                new PasswordLoginCommand(plugin), null);
         simple(commands, "sessions", "Manage sessions", List.of(), sessions, null);
         simple(commands, "telegram", "Link Telegram", List.of(), new TelegramCommand(plugin), null);
         registerTotp(commands);

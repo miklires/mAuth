@@ -10,11 +10,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
 
-public class CrackedCommand implements CommandExecutor {
+public class PasswordLoginCommand implements CommandExecutor {
 
     private final MAuth plugin;
 
-    public CrackedCommand(MAuth plugin) {
+    public PasswordLoginCommand(MAuth plugin) {
         this.plugin = plugin;
     }
 
@@ -22,7 +22,7 @@ public class CrackedCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return true;
-        if (!player.hasPermission("mauth.command.cracked")) {
+        if (!player.hasPermission("mauth.command.passwordlogin")) {
             plugin.getMessageUtil().send(player, "admin.no-permission");
             return true;
         }
@@ -30,19 +30,19 @@ public class CrackedCommand implements CommandExecutor {
             plugin.getMessageUtil().send(player, "auth.not-logged-in");
             return true;
         }
-        plugin.submit(player, () -> disable(player.getName()), (changed, error) -> {
+        plugin.submit(player, () -> enable(player.getName()), (changed, error) -> {
             if (!player.isOnline()) return;
             if (error != null) {
                 plugin.getMessageUtil().send(player, "auth.database-error");
             } else {
                 plugin.getMessageUtil().send(player,
-                        changed ? "license.disabled" : "license.already-cracked");
+                        changed ? "license.password-login-enabled" : "license.already-password-login");
             }
         });
         return true;
     }
 
-    private boolean disable(String username) {
+    private boolean enable(String username) {
         try {
             var account = plugin.getAccountRepository().findByUsername(username).orElse(null);
             if (account == null || !account.isPremiumEnabled()) return false;

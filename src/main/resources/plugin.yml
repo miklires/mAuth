@@ -3,7 +3,7 @@ version: ${version}
 main: io.github.miklires.mauth.MAuth
 api-version: '26.2'
 author: miklires
-description: Account authentication for offline-mode and mixed-mode servers
+description: Secondary account security for authenticated Minecraft servers
 load: STARTUP
 folia-supported: true
 softdepend: [floodgate, PlaceholderAPI]
@@ -35,8 +35,8 @@ permissions:
   mauth.command.license:
     description: Use /license
     default: true
-  mauth.command.cracked:
-    description: Use /cracked
+  mauth.command.passwordlogin:
+    description: Use /passwordlogin
     default: true
   mauth.command.2fa:
     description: Use TOTP two-factor authentication

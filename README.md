@@ -1,6 +1,6 @@
 <div align="center">
   <h1>mAuth</h1>
-  <p>Account authentication for offline-mode and mixed-mode Minecraft networks.</p>
+  <p>Secondary account security for authenticated Minecraft servers.</p>
 
   <p>
     <a href="https://papermc.io/software/paper"><img alt="Paper" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/paper_vector.svg"></a>
@@ -20,13 +20,15 @@
   </p>
 </div>
 
-Password login, premium and Floodgate accounts, TOTP, recovery, active sessions, legacy imports, and proxy routing are included without requiring an external database. Discord, Telegram, and Velocity are separate addons.
+Password confirmation, Mojang-authenticated Java accounts, Floodgate-authenticated Bedrock accounts, TOTP, recovery, active sessions, legacy imports, and proxy routing are included without requiring an external database. Discord, Telegram, and Velocity are separate addons.
+
+mAuth only supports authenticated Minecraft clients. A standalone server must use `online-mode=true`. A Velocity network must use `online-mode=true` on the proxy and secure player information forwarding to its backend servers. The Velocity addon refuses to start unless the proxy authenticates Java accounts with Mojang.
 
 ## What it does
 
 - Argon2id passwords with migration from bcrypt and common AuthMe-style hashes
 - H2, SQLite, MySQL, MariaDB, and PostgreSQL storage with schema upgrades
-- premium accounts through Velocity and Bedrock autologin through Floodgate
+- Mojang-authenticated Java accounts and Bedrock autologin through Floodgate
 - TOTP, recovery codes, verified email recovery, sessions, and account locks
 - login captcha, connection flood handling, IP limits, shared-IP session protection, nickname filters, and VPN providers
 - separate login/registration deadlines with a localized countdown boss bar
@@ -39,13 +41,15 @@ Password login, premium and Floodgate accounts, TOTP, recovery, active sessions,
 - Java 25
 - Paper-compatible server 26.2
 - Velocity only when using the proxy addon
+- Mojang authentication enabled on the standalone server or Velocity proxy
 
 ## Install
 
-1. Put `mAuth-1.0.1.jar` in the backend server `plugins` directory.
-2. Start the server once and edit `plugins/mAuth/config.yml`.
-3. Add optional addon jars beside the core jar.
-4. For proxy mode, set the same `shared-secret` on the proxy and backend.
+1. Put `mAuth-1.0.2.jar` in the backend server `plugins` directory.
+2. Keep `online-mode=true` on a standalone server. For a Velocity network, keep `online-mode=true` on the proxy and configure secure player information forwarding.
+3. Start the server once and edit `plugins/mAuth/config.yml`.
+4. Add optional addon jars beside the core jar.
+5. For proxy mode, set the same `shared-secret` on the proxy and backend.
 
 H2 is the default storage. Discord, Telegram, email, VPN lookup, and the web panel stay disabled until configured. bStats and update checks can be disabled separately.
 
@@ -71,15 +75,15 @@ The protected panel lists accounts and active sessions and lets an administrator
 
 ## Artifacts
 
-- `mAuth-1.0.1.jar`: Paper, Purpur, and Folia core
-- `mAuth-API-1.0.1.jar`: public interfaces and authentication event
-- `mAuth-Velocity-1.0.1.jar`: Velocity login routing and mixed-mode support
-- `mAuth-Discord-1.0.1.jar`: Discord linking and recovery
-- `mAuth-Telegram-1.0.1.jar`: Telegram linking and recovery
+- `mAuth-1.0.2.jar`: Paper, Purpur, and Folia core
+- `mAuth-API-1.0.2.jar`: public interfaces and authentication event
+- `mAuth-Velocity-1.0.2.jar`: authenticated Velocity login routing
+- `mAuth-Discord-1.0.2.jar`: Discord linking and recovery
+- `mAuth-Telegram-1.0.2.jar`: Telegram linking and recovery
 
 ## Player commands
 
-`/register`, `/login`, `/logout`, `/changepassword`, `/premium`, `/cracked`, `/2fa`, `/sessions`, `/email`, `/recover`, and `/telegram` are registered through the Paper Commands API. Incomplete commands are handled by mAuth and show localized usage instead of the server's generic syntax error.
+`/register`, `/login`, `/logout`, `/changepassword`, `/premium`, `/passwordlogin`, `/2fa`, `/sessions`, `/email`, `/recover`, and `/telegram` are registered through the Paper Commands API. Incomplete commands are handled by mAuth and show localized usage instead of the server's generic syntax error.
 
 ## Administration
 

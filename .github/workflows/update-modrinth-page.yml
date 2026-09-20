@@ -16,7 +16,7 @@ jobs:
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           PROJECT_NAME: mAuth
-          SUMMARY: 'Secure account authentication for Paper, Purpur, Folia, and Velocity networks.'
+          SUMMARY: 'Secondary account security for authenticated Paper, Purpur, and Velocity networks.'
           CATEGORIES: '["management","utility"]'
           ADDITIONAL_CATEGORIES: '["social"]'
           PLATFORMS: 'paper,purpur,velocity'

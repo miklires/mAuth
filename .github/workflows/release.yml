@@ -8,7 +8,7 @@ on:
       tag:
         description: Existing release tag
         required: true
-        default: v1.0.1
+        default: v1.0.2
 
 permissions:
   contents: write
@@ -34,7 +34,7 @@ jobs:
           sed 's#](docs/assets/web-panel.png)#](https://raw.githubusercontent.com/miklires/mAuth/main/docs/assets/web-panel.png)#' README.md > modrinth-body.md
           jq -n --rawfile body modrinth-body.md '{
             title: "mAuth",
-            description: "Secure account authentication for Paper, Purpur, Folia, and Velocity networks.",
+            description: "Secondary account security for authenticated Paper, Purpur, and Velocity networks.",
             body: $body,
             categories: ["management", "utility"],
             additional_categories: ["social"],
@@ -97,6 +97,25 @@ jobs:
             --form "data=@modrinth-velocity.json;type=application/json" \
             --form "velocity=@velocity/build/libs/mAuth-Velocity-$VERSION.jar;type=application/java-archive" \
             "https://api.modrinth.com/v2/version"
+      - name: Archive superseded Modrinth versions
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: $MODRINTH_TOKEN" \
+            "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/version" \
+            > modrinth-versions.json
+          jq -r --arg core "$VERSION" --arg velocity "$VERSION-velocity" \
+            '.[] | select(.version_number != $core and .version_number != $velocity) | .id' \
+            modrinth-versions.json | while read -r version_id; do
+              curl --fail-with-body --silent --show-error --request PATCH \
+                --header "Authorization: $MODRINTH_TOKEN" \
+                --header "Content-Type: application/json" \
+                --data '{"status":"archived"}' \
+                "https://api.modrinth.com/v2/version/$version_id"
+            done
       - name: Submit Modrinth project for review
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
@@ -111,8 +130,8 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           files: |
-            build/libs/mAuth-1.0.1.jar
-            api/build/libs/mAuth-API-1.0.1.jar
-            discord/build/libs/mAuth-Discord-1.0.1.jar
-            velocity/build/libs/mAuth-Velocity-1.0.1.jar
-            telegram/build/libs/mAuth-Telegram-1.0.1.jar
+            build/libs/mAuth-1.0.2.jar
+            api/build/libs/mAuth-API-1.0.2.jar
+            discord/build/libs/mAuth-Discord-1.0.2.jar
+            velocity/build/libs/mAuth-Velocity-1.0.2.jar
+            telegram/build/libs/mAuth-Telegram-1.0.2.jar

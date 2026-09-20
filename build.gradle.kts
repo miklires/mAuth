@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.miklires"
-version = "1.0.1"
+version = "1.0.2"
 
 modrinth {
     token.set(System.getenv("MODRINTH_TOKEN") ?: "")

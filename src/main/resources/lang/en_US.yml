@@ -45,8 +45,8 @@ license:
   not-premium-uuid: "<red>Run this command from a paid Minecraft account."
   rate-limited: "<yellow>Profile lookup is busy. Try again shortly."
   unavailable: "<red>Mojang profile service is unavailable. Premium mode was not changed."
-  disabled: "<green>Premium login disabled. Password login is required again."
-  already-cracked: "<yellow>Password login is already enabled."
+  password-login-enabled: "<green>Password login is required again."
+  already-password-login: "<yellow>Password login is already required."
 
 whitelist:
   added: "<green><white><player></white> added to the whitelist."

@@ -2,6 +2,13 @@
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## 1.0.2 - 2026-09-20
+
+- Removed unauthenticated connection handling from the Velocity addon
+- Added a startup guard that requires Mojang authentication on standalone servers or the proxy addon
+- Replaced the legacy account-mode command with `/passwordlogin`
+- Removed obsolete account-mode settings from the Velocity configuration
+
 ## 1.0.1 - 2026-08-27
 
 - Fixed an async teleport race that could leave session-authenticated players in limbo

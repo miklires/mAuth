@@ -19,7 +19,6 @@ import io.github.miklires.mauth.captcha.CaptchaManager;
 import io.github.miklires.mauth.command.CaptchaCommand;
 import io.github.miklires.mauth.command.BrigadierCommands;
 import io.github.miklires.mauth.command.ChangePasswordCommand;
-import io.github.miklires.mauth.command.CrackedCommand;
 import io.github.miklires.mauth.command.EmailCommand;
 import io.github.miklires.mauth.command.LicenseCommand;
 import io.github.miklires.mauth.command.IpHistoryCommand;
@@ -103,6 +102,11 @@ public final class MAuth extends JavaPlugin implements MAuthApi {
     public void onEnable() {
         configManager = new ConfigManager(this);
         configManager.load();
+        if (!getServer().getOnlineMode() && configManager.getProxySharedSecret().isBlank()) {
+            getLogger().severe("mAuth requires online-mode=true or the mAuth Velocity addon on an online-mode proxy");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         scheduler = new PluginScheduler(this);
         if (configManager.getDiscordMode() == DiscordMode.REQUIRED_FOR_NEW
                 && configManager.getDiscordRequiredAfter() <= 0) {

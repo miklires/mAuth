@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
-import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -29,7 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Plugin(id = "mauth-velocity", name = "mAuth Velocity", version = "1.0.1",
+@Plugin(id = "mauth-velocity", name = "mAuth Velocity", version = "1.0.2",
         authors = {"miklires"})
 public class MAuthVelocity {
 
@@ -39,11 +38,9 @@ public class MAuthVelocity {
     private final ProxyServer proxy;
     private final Logger logger;
     private final Path dataDirectory;
-    private final VelocityProfileService profiles = new VelocityProfileService();
     private final Set<UUID> authenticated = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<String, Long> nonces = new ConcurrentHashMap<>();
     private VelocityConfig config;
-    private CoreAccountService accounts;
 
     @Inject
     public MAuthVelocity(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -54,62 +51,19 @@ public class MAuthVelocity {
 
     @Subscribe
     public void onInitialize(ProxyInitializeEvent event) {
+        if (!proxy.getConfiguration().isOnlineMode()) {
+            throw new IllegalStateException("mAuth Velocity requires online-mode=true");
+        }
         try {
             config = VelocityConfig.load(dataDirectory);
         } catch (Exception e) {
             throw new IllegalStateException("cannot load mAuth Velocity config", e);
         }
         proxy.getChannelRegistrar().register(CHANNEL);
-        accounts = new CoreAccountService(config);
         Scheduler.TaskBuilder cleanup = proxy.getScheduler().buildTask(this, this::purgeNonces)
                 .repeat(Duration.ofMinutes(1));
         cleanup.schedule();
         logger.info("mAuth Velocity enabled with login servers {}", config.loginServers());
-    }
-
-    @Subscribe
-    public com.velocitypowered.api.event.EventTask onPreLogin(PreLoginEvent event) {
-        return com.velocitypowered.api.event.EventTask.async(() -> {
-            if (config.premiumMode() == VelocityConfig.PremiumMode.DISABLED) {
-                event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-                return;
-            }
-            VelocityProfileService.Lookup lookup = profiles.lookup(event.getUsername());
-            switch (lookup.result()) {
-                case PREMIUM -> applyPremiumPolicy(event, lookup);
-                case CRACKED -> event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-                case UNAVAILABLE -> {
-                    if (config.allowCrackedOnLookupFailure()) {
-                        event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-                    } else {
-                        event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                                Component.text("Mojang profile service is unavailable")));
-                    }
-                }
-            }
-        });
-    }
-
-    private void applyPremiumPolicy(PreLoginEvent event, VelocityProfileService.Lookup profile) {
-        CoreAccountService.State account = accounts.lookup(event.getUsername());
-        if (!account.available()) {
-            event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-            return;
-        }
-        if (!account.exists()) {
-            event.setResult(PreLoginEvent.PreLoginComponentResult.forceOnlineMode());
-            return;
-        }
-        if (account.premiumEnabled() && profile.uuid().equals(account.premiumUuid())) {
-            event.setResult(PreLoginEvent.PreLoginComponentResult.forceOnlineMode());
-            return;
-        }
-        switch (config.conflictPolicy()) {
-            case BLOCK -> event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-            case RENAME -> event.setResult(PreLoginEvent.PreLoginComponentResult.denied(
-                    Component.text("This premium name conflicts with a cracked account. Rename the cracked account first")));
-            case TAKE_OVER -> event.setResult(PreLoginEvent.PreLoginComponentResult.forceOnlineMode());
-        }
     }
 
     @Subscribe

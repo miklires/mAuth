@@ -34,7 +34,7 @@ jobs:
           sed 's#](docs/assets/web-panel.png)#](https://raw.githubusercontent.com/miklires/mAuth/main/docs/assets/web-panel.png)#' README.md > modrinth-body.md
           jq -n --rawfile body modrinth-body.md '{
             title: "mAuth",
-            description: "Secure account authentication for Paper, Purpur, Folia, and Velocity networks.",
+            description: "Secondary account security for authenticated Paper, Purpur, and Velocity networks.",
             body: $body,
             categories: ["management", "utility"],
             additional_categories: ["social"],

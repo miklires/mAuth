@@ -45,8 +45,8 @@ license:
   not-premium-uuid: "<red>Выполните команду с лицензионного аккаунта."
   rate-limited: "<yellow>Проверка профиля занята. Повторите немного позже."
   unavailable: "<red>Сервис профилей Mojang недоступен. Premium-режим не изменён."
-  disabled: "<green>Premium-вход отключён. Снова требуется пароль."
-  already-cracked: "<yellow>Вход по паролю уже включён."
+  password-login-enabled: "<green>Снова требуется вход по паролю."
+  already-password-login: "<yellow>Вход по паролю уже требуется."
 
 whitelist:
   added: "<green>Игрок <white><player></white> добавлен в белый список."
