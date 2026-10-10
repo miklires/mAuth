@@ -73,7 +73,7 @@ jobs:
             version_number: $number,
             version_type: "release",
             featured: true,
-            game_versions: ["26.2"],
+            game_versions: ["26.3"],
             loaders: ["paper", "purpur", "folia", "velocity"]
           }' > modrinth-version.json
           curl --fail-with-body --request PATCH \

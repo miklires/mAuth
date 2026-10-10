@@ -1,7 +1,7 @@
 name: mAuth
 version: ${version}
 main: io.github.miklires.mauth.MAuth
-api-version: '26.2'
+api-version: '26.3'
 author: miklires
 description: Secondary account security for authenticated Minecraft servers
 load: STARTUP

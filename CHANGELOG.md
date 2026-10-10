@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 - 2026-10-10
+
+- Added Minecraft 26.3 compatibility across the Paper, Velocity, Discord, and Telegram modules and verified the complete build and tests.
+
 This project follows [Semantic Versioning](https://semver.org/).
 
 ## 1.0.2 - 2026-09-20

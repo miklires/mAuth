@@ -18,7 +18,7 @@ repositories {
 dependencies {
     compileOnly(project(":"))
     compileOnly(project(":api"))
-    compileOnly("io.papermc.paper:paper-api:26.2.build.112-stable")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.169-beta")
     implementation("net.dv8tion:JDA:5.6.1") {
         exclude(module = "opus-java")
     }

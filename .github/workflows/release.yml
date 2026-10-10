@@ -83,7 +83,7 @@ jobs:
               version_number: $version,
               changelog: $changelog,
               dependencies: [],
-              game_versions: ["26.2"],
+              game_versions: ["26.3"],
               version_type: "release",
               loaders: ["velocity"],
               featured: true,

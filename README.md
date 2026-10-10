@@ -39,7 +39,7 @@ mAuth only supports authenticated Minecraft clients. A standalone server must us
 ## Requirements
 
 - Java 25
-- Paper-compatible server 26.2
+- Paper-compatible server 26.3
 - Velocity only when using the proxy addon
 - Mojang authentication enabled on the standalone server or Velocity proxy
 
