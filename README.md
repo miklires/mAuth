@@ -45,7 +45,7 @@ mAuth only supports authenticated Minecraft clients. A standalone server must us
 
 ## Install
 
-1. Put `mAuth-1.0.2.jar` in the backend server `plugins` directory.
+1. Put `mAuth-1.0.3.jar` in the backend server `plugins` directory.
 2. Keep `online-mode=true` on a standalone server. For a Velocity network, keep `online-mode=true` on the proxy and configure secure player information forwarding.
 3. Start the server once and edit `plugins/mAuth/config.yml`.
 4. Add optional addon jars beside the core jar.
@@ -75,11 +75,11 @@ The protected panel lists accounts and active sessions and lets an administrator
 
 ## Artifacts
 
-- `mAuth-1.0.2.jar`: Paper, Purpur, and Folia core
-- `mAuth-API-1.0.2.jar`: public interfaces and authentication event
-- `mAuth-Velocity-1.0.2.jar`: authenticated Velocity login routing
-- `mAuth-Discord-1.0.2.jar`: Discord linking and recovery
-- `mAuth-Telegram-1.0.2.jar`: Telegram linking and recovery
+- `mAuth-1.0.3.jar`: Paper, Purpur, and Folia core
+- `mAuth-API-1.0.3.jar`: public interfaces and authentication event
+- `mAuth-Velocity-1.0.3.jar`: authenticated Velocity login routing
+- `mAuth-Discord-1.0.3.jar`: Discord linking and recovery
+- `mAuth-Telegram-1.0.3.jar`: Telegram linking and recovery
 
 ## Player commands
 
